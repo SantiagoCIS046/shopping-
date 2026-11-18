@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Archives / snapshots
+*.zip
+
+# Native builds
+ios/
+android/
+
+# Logs and misc
+*.log
+.DS_Store
