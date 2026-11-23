@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Categorías dinámicas: cada local configura las suyas sin tocar código.
+// type: "prenda" (Camisetas, Jeans…) o "coleccion" (Básicos, Streetwear…).
+// parentId permite anidar niveles en el futuro (árbol auto-referenciado).
+model Category {
+  id           Int         @id @default(autoincrement())
+  slug         String      @unique
+  name         String
+  type         String      @default("prenda")
+  parentId     Int?
+  parent       Category?   @relation("CategoryTree", fields: [parentId], references: [id])
+  children     Category[]  @relation("CategoryTree")
+  imageUrl     String?
+  displayOrder Int         @default(0)
+  isActive     Boolean     @default(true)
+  products     Product[]
+}
+
+// Catálogo: el stock y el precio viven en la VARIANTE (talla/color),
+// nunca en el producto general. audience = segmento (mujer/hombre/unisex/ninos);
+// tags = estilos (#urbano, #formal…); discountPrice activa Ofertas.
+model Product {
+  id            String           @id @default(cuid())
+  slug          String           @unique // "jean-recto"
+  name          String
+  category      String           @default("") // deprecated: usar categoryId
+  categoryId    Int?
+  categoryRef   Category?        @relation(fields: [categoryId], references: [id])
+  audience      String           @default("unisex") // mujer | hombre | unisex | ninos
+  tags          String[]         @default([])
+  discountPrice Int? // precio de oferta (Ofertas/Sale)
+  image         String?
+  createdAt     DateTime         @default(now())
+  variants      ProductVariant[]
+}
+
+model ProductVariant {
+  id        String  @id @default(cuid())
+  sku       String  @unique // "jean-recto--32"
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size      String
+  color     String  @default("Única")
+  price     Int // en pesos colombianos, sin decimales
+  stock     Int     @default(0) // unidades físicas
+  reserved  Int     @default(0) // apartadas en órdenes pendientes de pago
+}
+
+model Order {
+  id               String      @id @default(cuid())
+  orderNumber      String      @unique // "ORD-1024"
+  status           String      @default("pendiente_pago") // pendiente_pago | pagado | enviado | entregado | cancelado
+  paymentMethod    String
+  paymentReference String?
+  carrier          String? // transportadora (Servientrega, Coordinadora…)
+  trackingNumber   String? // número de guía
+  customerEmail    String?
+  phone            String?
+  shippingAddress  Json?
+  subtotal         Int         @default(0)
+  shippingCost     Int         @default(0)
+  taxName          String      @default("IVA (19%)")
+  taxAmount        Int         @default(0)
+  total            Int         @default(0)
+  userId           String?
+  user             User?       @relation(fields: [userId], references: [id])
+  createdAt        DateTime    @default(now())
+  items            OrderItem[]
+}
+
+// Snapshot: guarda nombre y precio del momento de la compra,
+// para que el historial no cambie si la tienda actualiza precios.
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String // sku de la variante
+  name      String? // snapshot del nombre del producto
+  size      String
+  quantity  Int
+  unitPrice Int
+}
+
+model User {
+  id            String              @id @default(cuid())
+  name          String
+  email         String              @unique
+  passwordHash  String
+  phone         String?
+  addresses     Json                @default("[]")
+  createdAt     DateTime            @default(now())
+  resetTokens   PasswordResetToken[]
+  refreshTokens RefreshToken[]
+  orders        Order[]
+  tryOns        TryOn[]
+}
+
+// Sesiones del probador Vista: qué prendas se probaron y,
+// si el usuario guardó su look, la imagen compuesta resultante.
+model TryOn {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  skus      String[] // variantes probadas: "jean-recto--32"
+  imageUrl  String? // /uploads/vista/xxx.jpg (solo si el usuario guarda)
+  createdAt DateTime @default(now())
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}

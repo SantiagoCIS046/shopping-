@@ -1,62 +1,103 @@
-# Tienda Ropa (React Native + Expo)
+# Shopping — Tienda de ropa móvil (Expo + Express + PostgreSQL)
 
-App móvil para comprar ropa con probador virtual. Estilo oscuro negro-azulado, fondo urbano y paneles glass.
+App móvil de e-commerce para promocionar y vender las prendas de un local de ropa:
+catálogo por categorías, reel tipo TikTok, probador "Vista" sobre tu foto,
+carrito persistente, checkout con impuestos, pagos con webhook, panel administrativo
+y políticas legales (Colombia).
+
+## Arquitectura
+
+| Capa | Tecnología | Ubicación |
+|---|---|---|
+| App móvil | Expo SDK 58 · React Native 0.88 · TypeScript | `mobile/` |
+| API | Express 4 · TypeScript · tsx watch | `backend/src/` |
+| Base de datos | PostgreSQL 16 (Docker) + Prisma ORM | `docker-compose.yml` · `backend/prisma/` |
 
 ## Puesta en marcha
 
 ```bash
+# 1) Base de datos (puerto 5433 — el 5432 suele estar ocupado por un PostgreSQL local)
+docker compose up -d
+
+# 2) Backend
+cd backend
 npm install
-npx expo install --fix      # alinea las versiones con el SDK de Expo
+npx prisma migrate deploy      # aplica todas las migraciones
+npx tsx prisma/seed.ts         # sembró: 36 productos · 117 variantes con stock
+npm run dev                    # API en http://localhost:3000
+
+# 3) Móvil (en otra terminal)
+cd mobile
+npm install
+# → revisa src/config.ts: API_URL debe apuntar a la IP LAN de la máquina del backend
 npx expo start
 ```
 
-Escanea el código QR con la app **Expo Go** en tu celular, o usa un emulador.
+**Usuario de pruebas (admin):** `test@shopping.app` / `nuevaClave456`
 
-> Esta base no se ha ejecutado todavía. Antes de programar encima, corre `npm run typecheck` y `npx expo install --fix`.
+## Variables de entorno (`backend/.env`)
 
-## Estructura
-
-```
-App.tsx                      Punto de entrada: proveedores y navegación
-src/
-  theme/tokens.ts            Colores, espacios, radios y tipografía (fuente única de estilos)
-  components/
-    GlassCard.tsx            Panel glass con blur real
-    PrimaryButton.tsx        Botón con háptica y altura mínima de 44px
-    UrbanBackground.tsx      Fondo urbano (degradado, cuadrícula y edificios)
-    TryOnCanvas.tsx          Probador fase 1: foto + prenda que se mueve y escala
-  screens/
-    CatalogScreen.tsx        Catálogo con categorías y búsqueda
-    ProductScreen.tsx        Ficha, cambio de prenda, tallas y carrito
-    CheckoutScreen.tsx       Resumen y métodos de pago
-  navigation/RootNavigator.tsx
-  context/CartContext.tsx    Carrito en memoria (luego, Firestore)
-  data/products.ts           Datos de ejemplo y formato de pesos colombianos
-```
-
-## Cómo cambiar el estilo
-
-Todos los colores y espacios viven en `src/theme/tokens.ts`. Para cambiar el azul de marca, edita `colors.accent`. Ningún componente debe escribir colores sueltos.
-
-## Pendiente antes de lanzar
-
-1. **Ir al carrito desde el catálogo o la ficha.** Hoy `CheckoutScreen` existe, pero no hay botón que lleve a él.
-2. **Backend.** Firebase Auth, Firestore para productos y pedidos, y Storage para imágenes.
-3. **Pagos.** Integrar Wompi, ePayco o Mercado Pago. La tarjeta se procesa en la pasarela, nunca en la app.
-4. **Probador fase 2.** Detección de pose (por ejemplo, ML Kit con `react-native-vision-camera` o una librería de pose) para ajustar la prenda al cuerpo.
-5. **Quitar el fondo de las prendas.** Segmentación en el servidor o una API de terceros.
-6. **Legal.** Términos, política de datos (Ley 1581 de 2012) y facturación.
-7. **Pruebas y rendimiento.** Probar en un celular real; el probador con imágenes pesadas puede bajar los cuadros por segundo.
-
-## Dependencias clave
-
-| Paquete | Para qué |
+| Variable | Para qué |
 |---|---|
-| `expo-blur` | Efecto glass real |
-| `expo-linear-gradient` | Fondo degradado |
-| `react-native-svg` | Siluetas urbanas |
-| `expo-image-picker` | Subir foto desde el celular |
-| `expo-camera` | Tomar foto (pendiente de conectar) |
-| `expo-haptics` | Retroalimentación táctil |
-| `expo-image` | Imágenes con caché |
-| `@react-navigation/native-stack` | Navegación entre pantallas |
+| `DATABASE_URL` | Postgres (host `5433`) |
+| `JWT_SECRET` / `JWT_EXPIRES_IN` | Access token (30 min por seguridad) |
+| `REFRESH_TTL_DAYS` | Refresh token rotativo (30 días) |
+| `APP_RESET_URL` | Link del correo de recuperar contraseña (deep link) |
+| `SMTP_*` / `EMAIL_FROM` | Correos transaccionales (sin SMTP se imprimen en consola) |
+| `PAYMENT_WEBHOOK_SECRET` | Firma HMAC-SHA256 del webhook de la pasarela |
+| `ADMIN_EMAILS` | Correos con acceso al panel administrativo |
+| `RESERVATION_MINUTES` | Minutos de reserva de inventario (15) |
+
+Móvil (`mobile/src/config.ts`): `API_URL` (IP LAN del backend) y `COUNTRY_CODE`
+(impuesto nacional: CO 19%, MX 16%, AR 21%, PE 18%, CL 19%, EC 15%, ES 21%, US ~7%).
+
+## Flujos implementados
+
+**Autenticación** — registro/login con validación 8–64 caracteres, mensajes genéricos,
+rate limiting (5 intentos → 10 min de bloqueo), bcrypt(12), access token 30 min +
+refresh token rotativo con detección de reuso, recuperación por correo con deep link,
+login único (sesión en el llavero del dispositivo). HTTPS obligatorio fuera de desarrollo.
+
+**Tienda** — intro con scroll que desvanece hacia el login; nav inferior glass
+(Tienda · Vista · Carrito · Perfil); dashboard con carruseles por categoría;
+ficha con tallas y probador Vista (arrastrar/pellizcar/rotar/opacidad); reel vertical.
+
+**Carrito y checkout** — carrito persistente con cantidades, envío gratis desde $300.000;
+checkout en acordeón (Contacto → Envío → Pago) con resumen colapsable, teclados
+nativos, botón fijo "Pagar $X" y checkbox de aceptación legal.
+
+**Pedidos e inventario** — orden PENDING **reserva** inventario 15 minutos
+(atómico por variante); webhook con firma HMAC e idempotencia: APROBADO →
+descuenta stock exacto + correo con factura; DECLINADO → cancela y libera;
+expirado → barrido automático cada minuto. Snapshots de nombre/precio por item.
+
+**Administración** — panel en el perfil (solo `ADMIN_EMAILS`): pedidos por estado,
+marcar enviado con transportadora + guía → correo de rastreo al cliente.
+
+**Legal** — términos, cambios/devoluciones (30 días, etiquetas puestas) y
+tratamiento de datos (Ley 1581) visibles en la app; checkbox obligatorio en
+registro y checkout. Las pasarelas los exigen para producción.
+
+## Pruebas End-to-End (sandbox)
+
+Con el backend corriendo:
+
+```bash
+cd backend
+npx tsx scripts/e2e-sandbox.ts
+```
+
+Cubre (17 verificaciones): reserva de inventario, pago aprobado (estado + stock
+exacto + correo), pago rechazado (cancelado + stock repuesto), expiración de
+reserva (liberación automática), envío con guía, firma inválida rechazada y
+panel admin protegido.
+
+## Checklist para producción
+
+- [ ] Cuenta real en la pasarela (Wompi/Bold/ePayco): configurar el secret del webhook y las tarjetas de prueba del sandbox
+- [ ] Servir la API detrás de HTTPS (el móvil la exige fuera de desarrollo)
+- [ ] DNS del dominio: registros SPF, DKIM y DMARC para que los correos no caigan en Spam
+- [ ] Políticas legales también en un sitio web con footer (requisito de la pasarela)
+- [ ] Datos de contacto reales en `mobile/src/screens/LegalScreen.tsx`
+- [ ] Fotos reales de los productos (campo `image` del catálogo)
+- [ ] Mover el catálogo del móvil a la base de datos (los precios ya se validan en el servidor)

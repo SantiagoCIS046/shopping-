@@ -16,3 +16,11 @@ android/
 # Logs and misc
 *.log
 .DS_Store
+
+# Variables de entorno locales
+.env
+.env*.local
+
+# Uploads
+backend/uploads/*
+!backend/uploads/.gitkeep
