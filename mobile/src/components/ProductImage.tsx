@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Image, ImageStyle } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -35,9 +35,21 @@ export function ProductImage({
   style?: ViewStyle;
   iconSize?: number;
 }) {
-  if (product.image) {
-    return <Image source={{ uri: product.image }} style={style as ImageStyle} contentFit="cover" transition={250} />;
+  const [hasError, setHasError] = useState(false);
+
+  if (product.image && !hasError) {
+    return (
+      <Image
+        source={{ uri: product.image }}
+        style={style as ImageStyle}
+        contentFit="cover"
+        transition={250}
+        cachePolicy="memory-disk"
+        onError={() => setHasError(true)}
+      />
+    );
   }
+
   const gradient = GRADIENTS[product.category] ?? FALLBACK;
   return (
     <View style={[styles.tile, style]}>
