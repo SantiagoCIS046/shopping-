@@ -119,28 +119,30 @@ export function TryOnCanvas({ product }: { product: Product }) {
           />
         ) : (
           <View style={styles.empty}>
-            <Ionicons name="person-outline" size={40} color="rgba(230, 236, 246, 0.75)" />
+            <Ionicons name="person-outline" size={28} color="rgba(230, 236, 246, 0.75)" />
             <Text style={styles.emptyText}>Sube tu foto para probarte la prenda</Text>
-            <Text style={styles.emptyHint}>Arrastra la prenda con un dedo · pellizca con dos para escalar y rotar</Text>
+            <Text style={styles.emptyHint}>Arrastra con un dedo · pellizca con dos para escalar y rotar</Text>
           </View>
         )}
 
-        <Animated.View
-          accessibilityLabel="Prenda superpuesta: arrastra, pellizca y rota"
-          style={[
-            styles.garment,
-            {
-              opacity: OPACITIES[opacityIndex],
-              transform: [
-                ...pan.getTranslateTransform(),
-                { scale },
-                { rotate: `${rotate}deg` },
-              ],
-            },
-          ]}
-        >
-          <ProductImage product={product} style={styles.garmentImage} iconSize={38} />
-        </Animated.View>
+        <View style={styles.garmentLayer} pointerEvents="box-none">
+          <Animated.View
+            accessibilityLabel="Prenda superpuesta: arrastra, pellizca y rota"
+            style={[
+              styles.garment,
+              {
+                opacity: OPACITIES[opacityIndex],
+                transform: [
+                  ...pan.getTranslateTransform(),
+                  { scale },
+                  { rotate: `${rotate}deg` },
+                ],
+              },
+            ]}
+          >
+            <ProductImage product={product} style={styles.garmentImage} iconSize={38} contentFit="contain" />
+          </Animated.View>
+        </View>
       </View>
 
       <View style={styles.controls}>
@@ -196,9 +198,15 @@ const styles = StyleSheet.create({
   empty: {
     ...fill,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
+    justifyContent: 'flex-end',
+    gap: 4,
     paddingHorizontal: spacing.xxl,
+    paddingBottom: spacing.lg,
+  },
+  garmentLayer: {
+    ...fill,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyText: {
     color: colors.textSecondary,
@@ -211,19 +219,21 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   garment: {
-    position: 'absolute',
-    top: 70,
-    left: 105,
-    width: 170,
-    height: 190,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.accentBorder,
-    overflow: 'hidden',
+    width: 220,
+    height: 220,
+    padding: 10,
+    borderRadius: radius.lg,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
   garmentImage: {
     width: '100%',
     height: '100%',
+    borderRadius: radius.md,
   },
   controls: {
     flexDirection: 'row',

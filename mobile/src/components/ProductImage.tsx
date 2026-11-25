@@ -33,10 +33,12 @@ export function ProductImage({
   product,
   style,
   iconSize = 40,
+  contentFit = 'cover',
 }: {
   product: Product;
   style?: ViewStyle;
   iconSize?: number;
+  contentFit?: 'cover' | 'contain';
 }) {
   const [hasError, setHasError] = useState(false);
 
@@ -59,7 +61,7 @@ export function ProductImage({
       <Image
         source={source}
         style={style as ImageStyle}
-        contentFit="cover"
+        contentFit={contentFit}
         transition={150}
         cachePolicy="memory-disk"
         onError={() => setHasError(true)}

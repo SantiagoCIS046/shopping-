@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthBackdrop } from '../components/AuthBackdrop';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { ProductImage } from '../components/ProductImage';
 import { TryOnCanvas } from '../components/TryOnCanvas';
 import { colors, radius, spacing } from '../shop/tokens';
-import { formatCOP, Product, products } from '../data/products';
+import { categoryLabel, formatCOP, Product, productRef, products } from '../data/products';
 import { useCart } from '../context/CartContext';
 
 type Props = {
@@ -15,11 +17,26 @@ type Props = {
   onOpenCart: () => void;
 };
 
+const FREE_SHIPPING_FROM = 300000;
+
 export function ProductScreen({ product, onBack, onOpenCart }: Props) {
+  // Un solo producto "actual": la ficha, el probador, la talla y el carrito usan el mismo.
+  const [current, setCurrent] = useState<Product>(product);
   const [size, setSize] = useState<string>(product.sizes[1] ?? product.sizes[0]);
-  const [garment, setGarment] = useState<Product>(product);
+  const [showTryOn, setShowTryOn] = useState(false);
   const { add } = useCart();
-  const related = products.filter((p) => p.category === product.category).slice(0, 6);
+
+  const related = products.filter((p) => p.category === current.category && p.id !== current.id);
+
+  function selectProduct(next: Product) {
+    setCurrent(next);
+    setSize(next.sizes[1] ?? next.sizes[0]);
+    setShowTryOn(false);
+  }
+
+  function addToCart() {
+    add({ productId: current.id, name: current.name, price: current.price, size });
+  }
 
   return (
     <View style={styles.root}>
@@ -30,43 +47,66 @@ export function ProductScreen({ product, onBack, onOpenCart }: Props) {
             <Text style={styles.backText}>Volver</Text>
           </Pressable>
           <Text style={styles.topTitle} numberOfLines={1}>
-            {product.name}
+            {current.name}
           </Text>
           <View style={styles.spacer} />
         </View>
 
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <TryOnCanvas product={garment} />
+          {/* Muestra directamente la fotografía del producto en alta definición */}
+          {!showTryOn ? (
+            <View style={styles.imageShowcase}>
+              <ProductImage
+                product={current}
+                style={styles.showcaseImage}
+                contentFit="contain"
+                iconSize={54}
+              />
+            </View>
+          ) : (
+            <TryOnCanvas product={current} />
+          )}
 
-          <View style={styles.row}>
-            <Text style={styles.caption}>Módulo Vista: pruébatela sobre tu foto</Text>
-            <Text style={styles.price}>{formatCOP(product.price)}</Text>
-          </View>
+          {/* Botón opcional para activar o volver del probador virtual */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={showTryOn ? 'Ver foto del producto' : 'Probar prenda'}
+            onPress={() => setShowTryOn((prev) => !prev)}
+            style={styles.tryOnToggle}
+          >
+            <Ionicons
+              name={showTryOn ? 'image-outline' : 'sparkles-outline'}
+              size={16}
+              color={colors.accent}
+            />
+            <Text style={styles.tryOnToggleText}>
+              {showTryOn ? 'Volver a la vista del producto' : 'Probar prenda sobre mi foto (Módulo Vista)'}
+            </Text>
+          </Pressable>
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.garmentRow}>
-            {related.map((p) => {
-              const selected = p.id === garment.id;
-              return (
-                <Pressable
-                  key={p.id}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={`Probar ${p.name}`}
-                  onPress={() => setGarment(p)}
-                  style={[styles.garmentChip, selected && styles.garmentChipActive]}
-                >
-                  <Text style={[styles.garmentChipText, selected && styles.garmentChipTextActive]}>
-                    {p.name.split(' ')[0]}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
+          {/* Ficha del producto: lo que el cliente necesita antes de comprar */}
+          <GlassCard>
+            <View style={styles.titleRow}>
+              <View style={styles.titleBlock}>
+                <Text style={styles.name}>{current.name}</Text>
+                <Text style={styles.category}>{categoryLabel(current.category)}</Text>
+              </View>
+              <Text style={styles.price}>{formatCOP(current.price)}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <DetailRow label="Referencia" value={productRef(current)} />
+            <DetailRow label="Categoría" value={categoryLabel(current.category)} />
+            <DetailRow label="Tallas disponibles" value={current.sizes.join(' · ')} />
+            <DetailRow label="Talla seleccionada" value={size} />
+            <DetailRow label="Envío" value={`Gratis en compras desde ${formatCOP(FREE_SHIPPING_FROM)}`} />
+          </GlassCard>
 
           <GlassCard>
             <Text style={styles.sectionLabel}>Talla</Text>
             <View style={styles.sizes}>
-              {product.sizes.map((s) => {
+              {current.sizes.map((s) => {
                 const selected = s === size;
                 return (
                   <Pressable
@@ -82,17 +122,36 @@ export function ProductScreen({ product, onBack, onOpenCart }: Props) {
               })}
             </View>
           </GlassCard>
+
+          {related.length > 0 ? (
+            <View style={styles.relatedBlock}>
+              <Text style={styles.sectionLabel}>Más {categoryLabel(current.category).toLowerCase()}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.relatedRow}>
+                {related.map((p) => (
+                  <Pressable
+                    key={p.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Ver ${p.name}`}
+                    onPress={() => selectProduct(p)}
+                    style={styles.relatedChip}
+                  >
+                    <Text style={styles.relatedName} numberOfLines={2}>
+                      {p.name}
+                    </Text>
+                    <Text style={styles.relatedPrice}>{formatCOP(p.price)}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          ) : null}
         </ScrollView>
 
         <View style={styles.footer}>
-          <PrimaryButton
-            title="Agregar al carrito"
-            onPress={() => add({ productId: product.id, name: product.name, price: product.price, size })}
-          />
+          <PrimaryButton title="Agregar al carrito" onPress={addToCart} />
           <Pressable
             accessibilityRole="button"
             onPress={() => {
-              add({ productId: product.id, name: product.name, price: product.price, size });
+              addToCart();
               onOpenCart();
             }}
             style={styles.buyNow}
@@ -101,6 +160,15 @@ export function ProductScreen({ product, onBack, onOpenCart }: Props) {
           </Pressable>
         </View>
       </SafeAreaView>
+    </View>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={styles.detailValue}>{value}</Text>
     </View>
   );
 }
@@ -120,23 +188,56 @@ const styles = StyleSheet.create({
   topTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '600', flex: 1, textAlign: 'center' },
   spacer: { width: 60 },
   content: { paddingHorizontal: spacing.xl, paddingBottom: 24, gap: spacing.lg },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  caption: { color: colors.textMuted, fontSize: 13 },
-  price: { color: colors.textPrimary, fontSize: 17, fontWeight: '600' },
-  garmentRow: { flexDirection: 'row', gap: spacing.sm, paddingRight: spacing.xl },
-  garmentChip: {
-    flex: 1,
-    height: 52,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    backgroundColor: colors.glassFill,
+  imageShowcase: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: radius.xl,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 14,
+    elevation: 4,
   },
-  garmentChipActive: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
-  garmentChipText: { color: colors.textSecondary, fontSize: 12 },
-  garmentChipTextActive: { color: colors.textPrimary, fontWeight: '600' },
+  showcaseImage: {
+    width: '100%',
+    height: '100%',
+  },
+  tryOnToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: radius.md,
+    backgroundColor: colors.glassFill,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  tryOnToggleText: {
+    color: colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
+  titleBlock: { flex: 1 },
+  name: { color: colors.textPrimary, fontSize: 18, fontWeight: '700' },
+  category: { color: colors.textMuted, fontSize: 12, marginTop: 3, textTransform: 'uppercase', letterSpacing: 1 },
+  price: { color: colors.textPrimary, fontSize: 18, fontWeight: '700' },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.glassBorder, marginVertical: spacing.md },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 5,
+    gap: spacing.md,
+  },
+  detailLabel: { color: colors.textMuted, fontSize: 13 },
+  detailValue: { color: colors.textPrimary, fontSize: 13, fontWeight: '500', flexShrink: 1, textAlign: 'right' },
   sectionLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: '500', marginBottom: spacing.sm },
   sizes: { flexDirection: 'row', gap: spacing.sm },
   size: {
@@ -151,6 +252,20 @@ const styles = StyleSheet.create({
   sizeActive: { borderWidth: 2, borderColor: colors.accent, backgroundColor: colors.accentSoft },
   sizeText: { color: colors.textSecondary, fontSize: 14 },
   sizeTextActive: { color: colors.textPrimary, fontWeight: '600' },
+  relatedBlock: { gap: 0 },
+  relatedRow: { gap: spacing.sm, paddingRight: spacing.xl },
+  relatedChip: {
+    width: 150,
+    minHeight: 72,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    backgroundColor: colors.glassFill,
+    padding: spacing.md,
+    justifyContent: 'space-between',
+  },
+  relatedName: { color: colors.textPrimary, fontSize: 12.5, fontWeight: '600' },
+  relatedPrice: { color: colors.textMuted, fontSize: 12 },
   footer: { paddingHorizontal: spacing.xl, paddingBottom: spacing.lg, gap: spacing.sm },
   buyNow: {
     height: 52,

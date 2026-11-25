@@ -412,6 +412,28 @@ export function categoryIcon(id: string): CategoryIcon {
   return CATEGORIES.find((c) => c.id === id)?.icon ?? 'prism-outline';
 }
 
+const CATEGORY_CODES: Record<string, string> = {
+  camisetas: 'CAM',
+  polos: 'POL',
+  oversize: 'OVS',
+  'camisas-vestir': 'CVE',
+  deportiva: 'DEP',
+  buzos: 'BUZ',
+  sudaderas: 'SUD',
+  jeans: 'JEA',
+  zapatos: 'ZAP',
+  gafas: 'GAF',
+  relojes: 'REL',
+  lociones: 'LOC',
+};
+
+/** Referencia legible del producto, p. ej. "CAM-001" (código de categoría + posición). */
+export function productRef(product: Product): string {
+  const code = CATEGORY_CODES[product.category] ?? 'GEN';
+  const pos = products.filter((p) => p.category === product.category).findIndex((p) => p.id === product.id) + 1;
+  return `${code}-${String(pos).padStart(3, '0')}`;
+}
+
 export function productsByCategory(id: string): Product[] {
   return products.filter((p) => p.category === id);
 }
