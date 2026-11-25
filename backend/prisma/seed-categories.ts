@@ -8,25 +8,88 @@ import { PrismaClient } from '@prisma/client';
  */
 const prisma = new PrismaClient();
 
-const GARMENT_CATEGORIES: Array<{ slug: string; name: string }> = [
-  { slug: 'camisetas', name: 'Camisetas' },
-  { slug: 'polos', name: 'Polos' },
-  { slug: 'oversize', name: 'Oversize' },
-  { slug: 'camisas-vestir', name: 'Camisas de vestir' },
-  { slug: 'deportiva', name: 'Deportiva' },
-  { slug: 'buzos', name: 'Buzos' },
-  { slug: 'sudaderas', name: 'Sudaderas' },
-  { slug: 'jeans', name: 'Jeans' },
-  { slug: 'zapatos', name: 'Zapatos' },
-  { slug: 'gafas', name: 'Gafas' },
-  { slug: 'relojes', name: 'Relojes' },
-  { slug: 'lociones', name: 'Lociones' },
+const GARMENT_CATEGORIES: Array<{ slug: string; name: string; imageUrl: string }> = [
+  {
+    slug: 'camisetas',
+    name: 'Camisetas',
+    imageUrl: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'polos',
+    name: 'Polos',
+    imageUrl: 'https://images.unsplash.com/photo-1625910513413-5b8df7255963?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'oversize',
+    name: 'Oversize',
+    imageUrl: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'camisas-vestir',
+    name: 'Camisas de vestir',
+    imageUrl: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'deportiva',
+    name: 'Deportiva',
+    imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'buzos',
+    name: 'Buzos',
+    imageUrl: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'sudaderas',
+    name: 'Sudaderas',
+    imageUrl: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'jeans',
+    name: 'Jeans',
+    imageUrl: 'https://images.unsplash.com/photo-1542272604-780c96856478?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'zapatos',
+    name: 'Zapatos',
+    imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'gafas',
+    name: 'Gafas',
+    imageUrl: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'relojes',
+    name: 'Relojes',
+    imageUrl: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'lociones',
+    name: 'Lociones',
+    imageUrl: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=800&q=80',
+  },
 ];
 
-const COLLECTIONS: Array<{ slug: string; name: string; tag: string }> = [
-  { slug: 'basicos', name: 'Básicos', tag: '#basico' },
-  { slug: 'streetwear', name: 'Streetwear', tag: '#urbano' },
-  { slug: 'deportivo', name: 'Deportivo', tag: '#gym' },
+const COLLECTIONS: Array<{ slug: string; name: string; tag: string; imageUrl: string }> = [
+  {
+    slug: 'basicos',
+    name: 'Básicos',
+    tag: '#basico',
+    imageUrl: 'https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'streetwear',
+    name: 'Streetwear',
+    tag: '#urbano',
+    imageUrl: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80',
+  },
+  {
+    slug: 'deportivo',
+    name: 'Deportivo',
+    tag: '#gym',
+    imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80',
+  },
 ];
 
 // Segmento por slug de producto (los no listados quedan unisex)
@@ -75,16 +138,16 @@ async function main() {
   for (const [index, cat] of GARMENT_CATEGORIES.entries()) {
     await prisma.category.upsert({
       where: { slug: cat.slug },
-      update: { name: cat.name, type: 'prenda', displayOrder: index },
-      create: { slug: cat.slug, name: cat.name, type: 'prenda', displayOrder: index },
+      update: { name: cat.name, type: 'prenda', displayOrder: index, imageUrl: cat.imageUrl },
+      create: { slug: cat.slug, name: cat.name, type: 'prenda', displayOrder: index, imageUrl: cat.imageUrl },
     });
   }
 
   for (const [index, col] of COLLECTIONS.entries()) {
     await prisma.category.upsert({
       where: { slug: col.slug },
-      update: { name: col.name, type: 'coleccion', displayOrder: 100 + index },
-      create: { slug: col.slug, name: col.name, type: 'coleccion', displayOrder: 100 + index },
+      update: { name: col.name, type: 'coleccion', displayOrder: 100 + index, imageUrl: col.imageUrl },
+      create: { slug: col.slug, name: col.name, type: 'coleccion', displayOrder: 100 + index, imageUrl: col.imageUrl },
     });
   }
 
@@ -104,13 +167,8 @@ async function main() {
     });
   }
 
-  const counts = {
-    prendas: await prisma.category.count({ where: { type: 'prenda' } }),
-    colecciones: await prisma.category.count({ where: { type: 'coleccion' } }),
-    productos: await prisma.product.count(),
-    ofertas: await prisma.product.count({ where: { discountPrice: { not: null } } }),
-  };
-  console.log('Listo:', JSON.stringify(counts));
+  const catCount = await prisma.category.count();
+  console.log(`Listo: ${catCount} categorías dinámicas sembradas.`);
 }
 
 main()

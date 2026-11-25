@@ -3,7 +3,8 @@ import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Image, ImageStyle } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { categoryIcon, categoryLabel, Product } from '../data/products';
+import { categoryIcon, categoryLabel, Product, PRODUCT_LOCAL_IMAGES } from '../data/products';
+import { API_URL } from '../config';
 
 // Degradados azul/gris por categoría (misma paleta de la app, tono claro)
 const GRADIENTS: Record<string, [string, string]> = {
@@ -23,8 +24,10 @@ const GRADIENTS: Record<string, [string, string]> = {
 const FALLBACK: [string, string] = ['#2A3C66', '#1C2E52'];
 
 /**
- * Imagen de un producto: si tiene URL muestra la foto real;
- * si no, una plantilla elegante con el ícono y nombre de su categoría.
+ * Imagen de un producto:
+ * 1. Prioriza la imagen local en assets (1024x1024 px ajustada sobre fondo blanco puro).
+ * 2. Si no existe, intenta cargar la URL del servidor (/uploads/... o http://...).
+ * 3. Si no hay imagen o falla, muestra la plantilla elegante con gradiente e ícono.
  */
 export function ProductImage({
   product,
@@ -37,13 +40,27 @@ export function ProductImage({
 }) {
   const [hasError, setHasError] = useState(false);
 
-  if (product.image && !hasError) {
+  // 1. Asset local directo (0 latencia, offline garantizado)
+  const localAsset = PRODUCT_LOCAL_IMAGES[product.id];
+
+  // 2. URI remota o servida por backend
+  const resolveUri = () => {
+    if (!product.image || hasError) return null;
+    if (product.image.startsWith('http')) return product.image;
+    const cleanPath = product.image.startsWith('/') ? product.image : `/${product.image}`;
+    return `${API_URL}${cleanPath}`;
+  };
+
+  const remoteUri = resolveUri();
+  const source = localAsset ?? (remoteUri ? { uri: remoteUri } : null);
+
+  if (source && !hasError) {
     return (
       <Image
-        source={{ uri: product.image }}
+        source={source}
         style={style as ImageStyle}
         contentFit="cover"
-        transition={250}
+        transition={150}
         cachePolicy="memory-disk"
         onError={() => setHasError(true)}
       />

@@ -1,32 +1,28 @@
 import type { ComponentProps } from 'react';
 import type { Ionicons } from '@expo/vector-icons';
 
-// Catálogo de la tienda.
-// Cada producto incluye una fotografía de alta resolución.
-// Si alguna imagen no carga o falla la red, ProductImage muestra
-// automáticamente la plantilla con gradiente y el icono de su categoría.
-
 export type CategoryIcon = ComponentProps<typeof Ionicons>['name'];
 
 export type Category = {
   id: string;
   label: string;
   icon: CategoryIcon;
+  imageUrl?: string;
 };
 
 export const CATEGORIES: Category[] = [
-  { id: 'camisetas', label: 'Camisetas', icon: 'shirt-outline' },
-  { id: 'polos', label: 'Polos', icon: 'shirt-sharp' },
-  { id: 'oversize', label: 'Oversize', icon: 'expand-outline' },
-  { id: 'camisas-vestir', label: 'Camisas de vestir', icon: 'business-outline' },
-  { id: 'deportiva', label: 'Deportiva', icon: 'fitness-outline' },
-  { id: 'buzos', label: 'Buzos', icon: 'snow-outline' },
-  { id: 'sudaderas', label: 'Sudaderas', icon: 'layers-outline' },
-  { id: 'jeans', label: 'Jeans', icon: 'square-outline' },
-  { id: 'zapatos', label: 'Zapatos', icon: 'footsteps-outline' },
-  { id: 'gafas', label: 'Gafas', icon: 'glasses-outline' },
-  { id: 'relojes', label: 'Relojes', icon: 'watch-outline' },
-  { id: 'lociones', label: 'Lociones', icon: 'water-outline' },
+  { id: 'camisetas', label: 'Camisetas', icon: 'shirt-outline', imageUrl: '/uploads/products/camisetas-01.jpg' },
+  { id: 'polos', label: 'Polos', icon: 'shirt-sharp', imageUrl: '/uploads/products/polos-01.jpg' },
+  { id: 'oversize', label: 'Oversize', icon: 'expand-outline', imageUrl: '/uploads/products/oversize-01.jpg' },
+  { id: 'camisas-vestir', label: 'Camisas de vestir', icon: 'business-outline', imageUrl: '/uploads/products/camisas-de-vestir-01.jpg' },
+  { id: 'deportiva', label: 'Deportiva', icon: 'fitness-outline', imageUrl: '/uploads/products/deportiva-01.jpg' },
+  { id: 'buzos', label: 'Buzos', icon: 'snow-outline', imageUrl: '/uploads/products/buzos-01.jpg' },
+  { id: 'sudaderas', label: 'Sudaderas', icon: 'layers-outline', imageUrl: '/uploads/products/sudaderas-01.jpg' },
+  { id: 'jeans', label: 'Jeans', icon: 'square-outline', imageUrl: '/uploads/products/jeans-01.jpg' },
+  { id: 'zapatos', label: 'Zapatos', icon: 'footsteps-outline', imageUrl: '/uploads/products/zapatos-01.jpg' },
+  { id: 'gafas', label: 'Gafas', icon: 'glasses-outline', imageUrl: '/uploads/products/gafas-01.jpg' },
+  { id: 'relojes', label: 'Relojes', icon: 'watch-outline', imageUrl: '/uploads/products/relojes-01.jpg' },
+  { id: 'lociones', label: 'Lociones', icon: 'water-outline', imageUrl: '/uploads/products/lociones-01.jpg' },
 ];
 
 export type Product = {
@@ -35,8 +31,74 @@ export type Product = {
   category: string;
   price: number; // en pesos colombianos, sin decimales
   sizes: string[];
-  /** URL de la foto del producto; sin URL se usa la plantilla de categoría. */
+  /** Ruta o URL de la foto del producto. */
   image?: string | null;
+};
+
+/**
+ * Mapeo directo a los assets locales (1024x1024 px, fondo blanco puro).
+ * Garantiza renderizado con 0ms de latencia y funcionamiento 100% offline.
+ */
+export const PRODUCT_LOCAL_IMAGES: Record<string, any> = {
+  // 01 Camisetas
+  'camiseta-blanca': require('../../assets/products/camisetas-01.jpg'),
+  'camiseta-negra': require('../../assets/products/camisetas-02.jpg'),
+  'camiseta-grafica': require('../../assets/products/camisetas-03.jpg'),
+
+  // 02 Polos
+  'polo-pique': require('../../assets/products/polos-01.jpg'),
+  'polo-largo': require('../../assets/products/polos-02.jpg'),
+  'polo-rayas': require('../../assets/products/polos-03.jpg'),
+
+  // 03 Oversize
+  'oversize-blanca': require('../../assets/products/oversize-01.jpg'),
+  'oversize-caqui': require('../../assets/products/oversize-02.jpg'),
+  'oversize-capucha': require('../../assets/products/oversize-03.jpg'),
+
+  // 04 Camisas de vestir
+  'vestir-azul': require('../../assets/products/camisas-de-vestir-01.jpg'),
+  'vestir-blanca': require('../../assets/products/camisas-de-vestir-02.jpg'),
+  'vestir-negra': require('../../assets/products/camisas-de-vestir-03.jpg'),
+
+  // 05 Deportiva
+  'deportiva-camiseta': require('../../assets/products/deportiva-01.jpg'),
+  'deportiva-short': require('../../assets/products/deportiva-02.jpg'),
+  'deportiva-conjunto': require('../../assets/products/deportiva-03.jpg'),
+
+  // 06 Buzos
+  'buzo-canguro': require('../../assets/products/buzos-01.jpg'),
+  'buzo-cremallera': require('../../assets/products/buzos-02.jpg'),
+  'buzo-lana': require('../../assets/products/buzos-03.jpg'),
+
+  // 07 Sudaderas
+  'sudadera-gris': require('../../assets/products/sudaderas-01.jpg'),
+  'sudadera-negra': require('../../assets/products/sudaderas-02.jpg'),
+  'sudadera-degradado': require('../../assets/products/sudaderas-03.jpg'),
+
+  // 08 Jeans
+  'jean-recto': require('../../assets/products/jeans-01.jpg'),
+  'jean-skinny': require('../../assets/products/jeans-02.jpg'),
+  'jean-wide': require('../../assets/products/jeans-03.jpg'),
+
+  // 09 Zapatos
+  'zapato-running': require('../../assets/products/zapatos-01.jpg'),
+  'zapato-casual': require('../../assets/products/zapatos-02.jpg'),
+  'zapato-botin': require('../../assets/products/zapatos-03.jpg'),
+
+  // 10 Gafas
+  'gafa-aviador': require('../../assets/products/gafas-01.jpg'),
+  'gafa-wayfarer': require('../../assets/products/gafas-02.jpg'),
+  'gafa-deportiva': require('../../assets/products/gafas-03.jpg'),
+
+  // 11 Relojes
+  'reloj-malla': require('../../assets/products/relojes-01.jpg'),
+  'reloj-cuero': require('../../assets/products/relojes-02.jpg'),
+  'reloj-smart': require('../../assets/products/relojes-03.jpg'),
+
+  // 12 Lociones
+  'locion-citrus': require('../../assets/products/lociones-01.jpg'),
+  'locion-woody': require('../../assets/products/lociones-02.jpg'),
+  'locion-noche': require('../../assets/products/lociones-03.jpg'),
 };
 
 export const products: Product[] = [
@@ -47,7 +109,7 @@ export const products: Product[] = [
     category: 'camisetas',
     price: 59000,
     sizes: ['S', 'M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/camisetas-01.jpg',
   },
   {
     id: 'camiseta-negra',
@@ -55,7 +117,7 @@ export const products: Product[] = [
     category: 'camisetas',
     price: 65000,
     sizes: ['S', 'M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/camisetas-02.jpg',
   },
   {
     id: 'camiseta-grafica',
@@ -63,7 +125,7 @@ export const products: Product[] = [
     category: 'camisetas',
     price: 72000,
     sizes: ['M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/camisetas-03.jpg',
   },
   // Polos
   {
@@ -72,7 +134,7 @@ export const products: Product[] = [
     category: 'polos',
     price: 89000,
     sizes: ['S', 'M', 'L'],
-    image: 'https://images.unsplash.com/photo-1625910513413-5b8df7255963?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/polos-01.jpg',
   },
   {
     id: 'polo-largo',
@@ -80,7 +142,7 @@ export const products: Product[] = [
     category: 'polos',
     price: 95000,
     sizes: ['M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1618354691373-d851c5c3a990?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/polos-02.jpg',
   },
   {
     id: 'polo-rayas',
@@ -88,7 +150,7 @@ export const products: Product[] = [
     category: 'polos',
     price: 105000,
     sizes: ['S', 'M', 'L'],
-    image: 'https://images.unsplash.com/photo-1586363104862-3a5e2ab60d99?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/polos-03.jpg',
   },
   // Oversize
   {
@@ -97,7 +159,7 @@ export const products: Product[] = [
     category: 'oversize',
     price: 98000,
     sizes: ['S', 'M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/oversize-01.jpg',
   },
   {
     id: 'oversize-caqui',
@@ -105,7 +167,7 @@ export const products: Product[] = [
     category: 'oversize',
     price: 115000,
     sizes: ['M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1562157873-818bc0726f68?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/oversize-02.jpg',
   },
   {
     id: 'oversize-capucha',
@@ -113,7 +175,7 @@ export const products: Product[] = [
     category: 'oversize',
     price: 124000,
     sizes: ['M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/oversize-03.jpg',
   },
   // Camisas de vestir
   {
@@ -122,7 +184,7 @@ export const products: Product[] = [
     category: 'camisas-vestir',
     price: 149000,
     sizes: ['15', '15.5', '16', '16.5'],
-    image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/camisas-de-vestir-01.jpg',
   },
   {
     id: 'vestir-blanca',
@@ -130,7 +192,7 @@ export const products: Product[] = [
     category: 'camisas-vestir',
     price: 169000,
     sizes: ['15', '15.5', '16', '17'],
-    image: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/camisas-de-vestir-02.jpg',
   },
   {
     id: 'vestir-negra',
@@ -138,7 +200,7 @@ export const products: Product[] = [
     category: 'camisas-vestir',
     price: 189000,
     sizes: ['15.5', '16', '16.5', '17'],
-    image: 'https://images.unsplash.com/photo-1603252109303-2751441dd157?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/camisas-de-vestir-03.jpg',
   },
   // Deportiva
   {
@@ -147,7 +209,7 @@ export const products: Product[] = [
     category: 'deportiva',
     price: 119000,
     sizes: ['S', 'M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/deportiva-01.jpg',
   },
   {
     id: 'deportiva-short',
@@ -155,7 +217,7 @@ export const products: Product[] = [
     category: 'deportiva',
     price: 135000,
     sizes: ['S', 'M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/deportiva-02.jpg',
   },
   {
     id: 'deportiva-conjunto',
@@ -163,7 +225,7 @@ export const products: Product[] = [
     category: 'deportiva',
     price: 149000,
     sizes: ['M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/deportiva-03.jpg',
   },
   // Buzos
   {
@@ -172,7 +234,7 @@ export const products: Product[] = [
     category: 'buzos',
     price: 129000,
     sizes: ['S', 'M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/buzos-01.jpg',
   },
   {
     id: 'buzo-cremallera',
@@ -180,7 +242,7 @@ export const products: Product[] = [
     category: 'buzos',
     price: 145000,
     sizes: ['M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1548883354-7622d03aca27?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/buzos-02.jpg',
   },
   {
     id: 'buzo-lana',
@@ -188,7 +250,7 @@ export const products: Product[] = [
     category: 'buzos',
     price: 159000,
     sizes: ['M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1614975058789-41316d0e2e9c?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/buzos-03.jpg',
   },
   // Sudaderas
   {
@@ -197,7 +259,7 @@ export const products: Product[] = [
     category: 'sudaderas',
     price: 109000,
     sizes: ['S', 'M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1552902865-b72c031ac5ea?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/sudaderas-01.jpg',
   },
   {
     id: 'sudadera-negra',
@@ -205,7 +267,7 @@ export const products: Product[] = [
     category: 'sudaderas',
     price: 125000,
     sizes: ['M', 'L', 'XL'],
-    image: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/sudaderas-02.jpg',
   },
   {
     id: 'sudadera-degradado',
@@ -213,7 +275,7 @@ export const products: Product[] = [
     category: 'sudaderas',
     price: 139000,
     sizes: ['S', 'M', 'L'],
-    image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/sudaderas-03.jpg',
   },
   // Jeans
   {
@@ -222,7 +284,7 @@ export const products: Product[] = [
     category: 'jeans',
     price: 139000,
     sizes: ['28', '30', '32', '34', '36'],
-    image: 'https://images.unsplash.com/photo-1542272604-780c96856478?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/jeans-01.jpg',
   },
   {
     id: 'jean-skinny',
@@ -230,7 +292,7 @@ export const products: Product[] = [
     category: 'jeans',
     price: 159000,
     sizes: ['28', '30', '32', '34'],
-    image: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/jeans-02.jpg',
   },
   {
     id: 'jean-wide',
@@ -238,7 +300,7 @@ export const products: Product[] = [
     category: 'jeans',
     price: 179000,
     sizes: ['30', '32', '34', '36', '38'],
-    image: 'https://images.unsplash.com/photo-1582418702059-97ebafb35d09?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/jeans-03.jpg',
   },
   // Zapatos
   {
@@ -247,7 +309,7 @@ export const products: Product[] = [
     category: 'zapatos',
     price: 229000,
     sizes: ['38', '39', '40', '41', '42', '43', '44'],
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/zapatos-01.jpg',
   },
   {
     id: 'zapato-casual',
@@ -255,7 +317,7 @@ export const products: Product[] = [
     category: 'zapatos',
     price: 289000,
     sizes: ['39', '40', '41', '42', '43'],
-    image: 'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/zapatos-02.jpg',
   },
   {
     id: 'zapato-botin',
@@ -263,7 +325,7 @@ export const products: Product[] = [
     category: 'zapatos',
     price: 349000,
     sizes: ['38', '39', '40', '41', '42'],
-    image: 'https://images.unsplash.com/photo-1520639888713-7851133b1ed0?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/zapatos-03.jpg',
   },
   // Gafas
   {
@@ -272,7 +334,7 @@ export const products: Product[] = [
     category: 'gafas',
     price: 159000,
     sizes: ['Única'],
-    image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/gafas-01.jpg',
   },
   {
     id: 'gafa-wayfarer',
@@ -280,7 +342,7 @@ export const products: Product[] = [
     category: 'gafas',
     price: 199000,
     sizes: ['Única'],
-    image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/gafas-02.jpg',
   },
   {
     id: 'gafa-deportiva',
@@ -288,7 +350,7 @@ export const products: Product[] = [
     category: 'gafas',
     price: 259000,
     sizes: ['Única'],
-    image: 'https://images.unsplash.com/photo-1577803645773-f96470509666?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/gafas-03.jpg',
   },
   // Relojes
   {
@@ -297,7 +359,7 @@ export const products: Product[] = [
     category: 'relojes',
     price: 389000,
     sizes: ['Única'],
-    image: 'https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/relojes-01.jpg',
   },
   {
     id: 'reloj-cuero',
@@ -305,7 +367,7 @@ export const products: Product[] = [
     category: 'relojes',
     price: 549000,
     sizes: ['Única'],
-    image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/relojes-02.jpg',
   },
   {
     id: 'reloj-smart',
@@ -313,7 +375,7 @@ export const products: Product[] = [
     category: 'relojes',
     price: 799000,
     sizes: ['Única'],
-    image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/relojes-03.jpg',
   },
   // Lociones
   {
@@ -322,7 +384,7 @@ export const products: Product[] = [
     category: 'lociones',
     price: 89000,
     sizes: ['50 ml', '100 ml'],
-    image: 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/lociones-01.jpg',
   },
   {
     id: 'locion-woody',
@@ -330,7 +392,7 @@ export const products: Product[] = [
     category: 'lociones',
     price: 119000,
     sizes: ['100 ml', '200 ml'],
-    image: 'https://images.unsplash.com/photo-1547887537-6158d64c35b3?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/lociones-02.jpg',
   },
   {
     id: 'locion-noche',
@@ -338,7 +400,7 @@ export const products: Product[] = [
     category: 'lociones',
     price: 149000,
     sizes: ['50 ml', '100 ml', '200 ml'],
-    image: 'https://images.unsplash.com/photo-1523293182086-7651a899d37f?auto=format&fit=crop&w=800&q=80',
+    image: '/uploads/products/lociones-03.jpg',
   },
 ];
 

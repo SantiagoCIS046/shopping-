@@ -24,3 +24,5 @@ android/
 # Uploads
 backend/uploads/*
 !backend/uploads/.gitkeep
+!backend/uploads/products/
+!backend/uploads/products/*

@@ -53,6 +53,7 @@ const styles = StyleSheet.create({
   imageWrap: {
     borderRadius: radius.lg,
     overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
   },
   image: {
     width: '100%',
