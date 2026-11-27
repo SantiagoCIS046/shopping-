@@ -51,3 +51,23 @@ export function listLooks() {
 export function lookUrl(path: string) {
   return `${API_URL}${path}`;
 }
+
+export type VistaJobStatus = {
+  jobId: string;
+  status: 'pending' | 'processing' | 'done' | 'failed';
+  resultUrl: string | null;
+  error: string | null;
+};
+
+/** Inicia la generación del look con IA. La foto va en base64 (JPEG). */
+export function generateLook(photoBase64: string, skus: string[]) {
+  return api<{ jobId: string; status: string }>('/vista/generate', {
+    method: 'POST',
+    body: { photo: photoBase64, skus },
+  });
+}
+
+/** Estado de la generación; la app consulta hasta que esté "done" o "failed". */
+export function getLookJob(jobId: string) {
+  return api<VistaJobStatus>(`/vista/jobs/${encodeURIComponent(jobId)}`);
+}

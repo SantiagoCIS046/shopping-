@@ -12,13 +12,20 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.tuempresa.tiendaropa"
+      "bundleIdentifier": "com.tuempresa.tiendaropa",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Permite usar la cámara para probarte las prendas."
+      }
     },
     "android": {
       "package": "com.tuempresa.tiendaropa",
       "adaptiveIcon": {
         "backgroundColor": "#050A16"
-      }
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       [
@@ -34,7 +41,20 @@
         }
       ],
       "expo-font",
-      "expo-secure-store"
-    ]
+      "expo-secure-store",
+      "expo-asset",
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "Permite usar la cámara para probarte las prendas.",
+          "enableMicrophonePermission": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "27ff0cf3-cd6d-4700-a707-91cf1bec1525"
+      }
+    }
   }
 }

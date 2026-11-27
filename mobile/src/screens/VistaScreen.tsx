@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   Easing,
   PanResponder,
@@ -23,6 +24,8 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { ProductImage } from '../components/ProductImage';
 import { useCart } from '../context/CartContext';
 import {
+  generateLook,
+  getLookJob,
   listLooks,
   lookUrl,
   saveLook,
@@ -65,6 +68,9 @@ export function VistaScreen() {
   const [opacityIndex, setOpacityIndex] = useState(0);
 
   const [resultUri, setResultUri] = useState<string | null>(null);
+  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [generatedUri, setGeneratedUri] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
@@ -149,17 +155,56 @@ export function VistaScreen() {
     setError(null);
     const options = {
       mediaTypes: ['images'] as Array<'images'>,
-      quality: 0.9,
+      quality: 0.6, // foto más liviana: el envío al servidor tiene un límite de tamaño
       allowsEditing: true,
       aspect: [3, 4] as [number, number],
+      base64: true,
     };
     const result = fromCamera
       ? await ImagePicker.launchCameraAsync(options)
       : await ImagePicker.launchImageLibraryAsync(options);
     if (!result.canceled) {
-      setPhotoUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      setPhotoUri(asset.uri);
+      setPhotoBase64(asset.base64 ?? null);
       setResultUri(null);
+      setGeneratedUri(null);
       resetTransforms();
+      // Al elegir la foto empieza la generación sola, sin tocar otro botón.
+      void startGeneration(asset.base64 ?? (await uriToBase64(asset.uri)));
+    }
+  };
+
+  // Generación con IA: envía la foto y las prendas del carrito, y espera el resultado.
+  const startGeneration = async (base64?: string | null) => {
+    const photo = base64 ?? photoBase64;
+    if (!photo || !garments || garments.length === 0) {
+      setError('Agrega una prenda al carrito y elige tu foto para generar el look');
+      return;
+    }
+    setError(null);
+    setGenerating(true);
+    try {
+      const job = await generateLook(
+        photo,
+        garments.map((g) => g.sku),
+      );
+      for (let attempt = 0; attempt < 90; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const status = await getLookJob(job.jobId);
+        if (status.status === 'done' && status.resultUrl) {
+          setGeneratedUri(lookUrl(status.resultUrl));
+          return;
+        }
+        if (status.status === 'failed') throw new Error(status.error ?? 'No pudimos generar el look');
+      }
+      throw new Error('La generación tardó demasiado, intenta de nuevo');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No pudimos generar el look';
+      setError(message);
+      Alert.alert('No pudimos generar tu look', message);
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -221,7 +266,7 @@ export function VistaScreen() {
     return (
       <View style={styles.root}>
         <AuthBackdrop intensity={70} />
-        <SafeAreaView style={styles.safe} edges={['top']}>
+        <SafeAreaView style={styles.safe} edges={[]}>
           <View style={styles.empty}>
             <Ionicons name="cart-outline" size={44} color={colors.textMuted} />
             <Text style={styles.emptyTitle}>Tu carrito está vacío</Text>
@@ -239,12 +284,34 @@ export function VistaScreen() {
     );
   }
 
+  // ── Look generado con IA ─────────────────────────────────────────
+  if (generatedUri) {
+    return (
+      <View style={styles.root}>
+        <AuthBackdrop intensity={70} />
+        <SafeAreaView style={styles.safe} edges={[]}>
+          <ScrollView contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
+            <Text style={styles.resultTitle}>Así te queda 🤩</Text>
+            <Image source={{ uri: generatedUri }} style={styles.resultImage} contentFit="contain" transition={200} />
+            <PrimaryButton
+              title="Ir a pagar mi carrito"
+              onPress={() => navigation.navigate('Main', { screen: 'Carrito' })}
+            />
+            <Pressable accessibilityRole="button" onPress={() => setGeneratedUri(null)} style={styles.ghostButton}>
+              <Text style={styles.ghostText}>Seguir probando</Text>
+            </Pressable>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
   // ── Resultado del look ───────────────────────────────────────────
   if (resultUri) {
     return (
       <View style={styles.root}>
         <AuthBackdrop intensity={70} />
-        <SafeAreaView style={styles.safe} edges={['top']}>
+        <SafeAreaView style={styles.safe} edges={[]}>
           <ScrollView contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
             <Text style={styles.resultTitle}>Así te queda 🤩</Text>
             <Image source={{ uri: resultUri }} style={styles.resultImage} contentFit="contain" transition={200} />
@@ -282,7 +349,7 @@ export function VistaScreen() {
     <View style={styles.root}>
       <AuthBackdrop intensity={70} />
 
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={[]}>
         <View style={styles.topBar}>
           <Text style={styles.title}>Vista</Text>
           <Text style={styles.subtitle}>Pruébate lo de tu carrito antes de pagar</Text>
@@ -301,15 +368,31 @@ export function VistaScreen() {
                   <Pressable
                     key={g.sku}
                     accessibilityRole="button"
+                    accessibilityLabel={`${g.name}, talla ${g.size}`}
                     accessibilityState={{ selected: active }}
                     onPress={() => setSelectedSku(g.sku)}
-                    style={[styles.garmentChip, active && styles.garmentChipActive]}
+                    style={styles.thumbWrap}
                   >
-                    <Text style={[styles.garmentName, active && styles.garmentNameActive]} numberOfLines={1}>
+                    <View style={[styles.thumb, active && styles.thumbActive]}>
+                      <ProductImage
+                        product={{
+                          id: g.sku.split('--')[0],
+                          name: g.name,
+                          category: g.category,
+                          price: g.price,
+                          sizes: [g.size],
+                          image: g.image ?? null,
+                        }}
+                        style={styles.thumbImage}
+                        contentFit="contain"
+                        iconSize={20}
+                      />
+                      <View style={styles.thumbBadge}>
+                        <Text style={styles.thumbBadgeText}>{g.size}</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.thumbName, active && styles.thumbNameActive]} numberOfLines={1}>
                       {g.name}
-                    </Text>
-                    <Text style={styles.garmentMeta}>
-                      Talla {g.size} · {formatCOP(g.price)}
                     </Text>
                   </Pressable>
                 );
@@ -390,9 +473,9 @@ export function VistaScreen() {
 
               <PrimaryButton
                 title={capturing ? 'Capturando…' : 'Ver mi look'}
-                onPress={captureLook}
-                loading={capturing}
-                disabled={!selectedGarment}
+                onPress={() => startGeneration()}
+                loading={generating}
+                disabled={generating || !garments || garments.length === 0}
                 style={styles.lookButton}
               />
               <Text style={styles.privacyHint}>
@@ -439,6 +522,21 @@ export function VistaScreen() {
           ) : null}
         </ScrollView>
 
+        {/* Pantalla de carga: la foto del usuario con un velo gris y el loading al centro */}
+        {generating ? (
+          <View style={[fill, styles.genOverlay]}>
+            {photoUri ? (
+              <Image source={{ uri: photoUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+            ) : null}
+            <View style={styles.genShade} />
+            <View style={styles.genCenter}>
+              <ActivityIndicator size="large" color="#FFFFFF" />
+              <Text style={styles.genTitle}>Creando tu look…</Text>
+              <Text style={styles.genHint}>Tarda entre 20 y 40 segundos</Text>
+            </View>
+          </View>
+        ) : null}
+
         {/* Look a pantalla completa */}
         {viewingLook ? (
           <Pressable style={styles.lookOverlay} onPress={() => setViewingLook(null)}>
@@ -449,6 +547,20 @@ export function VistaScreen() {
       </SafeAreaView>
     </View>
   );
+}
+
+/** Convierte la foto elegida a base64 (respaldo si el selector no lo entrega). */
+async function uriToBase64(uri: string): Promise<string> {
+  const blob = await (await fetch(uri)).blob();
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = String(reader.result ?? '');
+      resolve(dataUrl.replace(/^data:[^,]*,/, ''));
+    };
+    reader.onerror = () => reject(new Error('No pudimos leer la foto'));
+    reader.readAsDataURL(blob);
+  });
 }
 
 function ToolButton({
@@ -485,6 +597,33 @@ const styles = StyleSheet.create({
   },
   loader: { marginVertical: 16 },
   garmentRow: { gap: spacing.sm, paddingBottom: 4 },
+  thumbWrap: { width: 76, gap: 4 },
+  thumb: {
+    width: 76,
+    height: 76,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.24)',
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  thumbActive: { borderWidth: 2, borderColor: colors.accent },
+  thumbImage: { width: '100%', height: '100%' },
+  thumbBadge: {
+    position: 'absolute',
+    right: 4,
+    bottom: 4,
+    minWidth: 22,
+    paddingHorizontal: 4,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: 'rgba(5, 10, 22, 0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
+  thumbName: { color: colors.textSecondary, fontSize: 11, fontWeight: '500', textAlign: 'center' },
+  thumbNameActive: { color: colors.textPrimary, fontWeight: '700' },
   garmentChip: {
     minWidth: 130,
     maxWidth: 190,
@@ -576,6 +715,11 @@ const styles = StyleSheet.create({
     zIndex: 40,
   },
   lookFull: { width: '92%', height: '82%' },
+  genOverlay: { zIndex: 50 },
+  genShade: { ...fill, backgroundColor: 'rgba(24, 24, 24, 0.62)' },
+  genCenter: { ...fill, alignItems: 'center', justifyContent: 'center', gap: 10 },
+  genTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+  genHint: { color: '#FFFFFF', fontSize: 13, fontWeight: '500' },
   lookOverlayHint: { color: colors.textMuted, fontSize: 12, marginTop: 14 },
   empty: {
     flex: 1,

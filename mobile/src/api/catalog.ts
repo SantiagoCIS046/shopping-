@@ -16,6 +16,7 @@ export type CatalogCategories = {
 
 export type CatalogProduct = {
   id: string; // slug
+  ref: string | null; // referencia pública opaca del servidor
   name: string;
   category: string;
   categoryName: string;
@@ -40,6 +41,7 @@ export type CatalogFilters = {
   onlySale?: boolean;
   onlyBest?: boolean;
   sort?: 'recientes' | 'precio-asc' | 'precio-desc' | 'vendidos';
+  slugs?: string[]; // solo estos productos (stock del carrito)
 };
 
 /** Categorías dinámicas del local (prendas, colecciones y segmentos presentes). */
@@ -64,6 +66,7 @@ export function fetchProducts(filters: CatalogFilters = {}) {
   if (filters.onlySale) params.set('sale', '1');
   if (filters.onlyBest) params.set('best', '1');
   if (filters.sort) params.set('sort', filters.sort);
+  if (filters.slugs?.length) params.set('slugs', filters.slugs.join(','));
   const query = params.toString();
   return api<{ products: CatalogProduct[]; sizes: CatalogSizeOption[] }>(
     `/catalog/products${query ? `?${query}` : ''}`,

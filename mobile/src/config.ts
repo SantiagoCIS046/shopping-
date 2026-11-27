@@ -11,3 +11,10 @@ export const API_URL = 'http://192.168.1.130:3000';
  * Ver la tabla completa en src/shop/pricing.ts
  */
 export const COUNTRY_CODE = 'CO';
+
+/**
+ * Módulo Vista (probador con IA). Está bloqueado mientras no funcione de forma
+ * estable: no aparece en la barra de navegación ni en la ficha del producto.
+ * Cambia a `true` para reactivarlo.
+ */
+export const VISTA_ENABLED = false;

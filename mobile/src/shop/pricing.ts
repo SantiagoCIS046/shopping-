@@ -18,8 +18,22 @@ export const COUNTRY_TAXES: Record<string, CountryTax> = {
   US: { name: 'Sales Tax', rate: 0.07 }, // Estados Unidos (aprox.)
 };
 
-export const SHIPPING_COST = 15000; // envío estándar
 export const FREE_SHIPPING_FROM = 300000; // envío gratis desde este subtotal
+
+/**
+ * Envío por tramos según el subtotal (sin impuestos).
+ * Debe coincidir con shippingFor() en backend/src/orders.ts.
+ */
+export const SHIPPING_TIERS: Array<{ upTo: number; cost: number }> = [
+  { upTo: 50000, cost: 3000 },
+  { upTo: 150000, cost: 6000 },
+  { upTo: FREE_SHIPPING_FROM, cost: 10000 },
+];
+
+export function shippingFor(subtotal: number): number {
+  if (subtotal <= 0 || subtotal >= FREE_SHIPPING_FROM) return 0;
+  return SHIPPING_TIERS.find((t) => subtotal < t.upTo)?.cost ?? 0;
+}
 
 export type Totals = {
   taxLabel: string;
@@ -36,7 +50,7 @@ export function calcTotals(subtotal: number, country: string = COUNTRY_CODE): To
   const tax = COUNTRY_TAXES[country] ?? COUNTRY_TAXES.CO;
   const taxAmount = Math.round(subtotal * tax.rate);
   const freeShipping = subtotal >= FREE_SHIPPING_FROM;
-  const shipping = subtotal === 0 || freeShipping ? 0 : SHIPPING_COST;
+  const shipping = shippingFor(subtotal);
   return {
     taxLabel: `${tax.name} (${Math.round(tax.rate * 100)}%)`,
     taxRate: tax.rate,

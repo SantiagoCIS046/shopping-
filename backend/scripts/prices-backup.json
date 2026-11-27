@@ -1,0 +1,839 @@
+[
+  {
+    "id": "cmwny55xz0068sf1gn801y2ke",
+    "slug": "zapato-botin",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55y3006asf1gzvp72njw",
+        "sku": "zapato-botin--38",
+        "price": 349000
+      },
+      {
+        "id": "cmwny55y7006csf1gcgkyx20b",
+        "sku": "zapato-botin--39",
+        "price": 349000
+      },
+      {
+        "id": "cmwny55yb006esf1g0qrcyojn",
+        "sku": "zapato-botin--40",
+        "price": 349000
+      },
+      {
+        "id": "cmwny55ye006gsf1grg6h1caz",
+        "sku": "zapato-botin--41",
+        "price": 349000
+      },
+      {
+        "id": "cmwny55yi006isf1grekva5mt",
+        "sku": "zapato-botin--42",
+        "price": 349000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55ym006jsf1gw3w3mvdr",
+    "slug": "gafa-aviador",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55yp006lsf1g7nk1fijo",
+        "sku": "gafa-aviador--Única",
+        "price": 159000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55z0006psf1g3ob70kzd",
+    "slug": "gafa-deportiva",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55z4006rsf1gd16qqsto",
+        "sku": "gafa-deportiva--Única",
+        "price": 259000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55zg006vsf1glz6yig6r",
+    "slug": "reloj-cuero",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55zk006xsf1g4su2uaky",
+        "sku": "reloj-cuero--Única",
+        "price": 549000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55le0009sf1gt2jtb7aj",
+    "slug": "camiseta-negra",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55lh000bsf1ga82r58bh",
+        "sku": "camiseta-negra--S",
+        "price": 65000
+      },
+      {
+        "id": "cmwny55lm000dsf1gqlxwa9w4",
+        "sku": "camiseta-negra--M",
+        "price": 65000
+      },
+      {
+        "id": "cmwny55lq000fsf1glnbvf1sc",
+        "sku": "camiseta-negra--L",
+        "price": 65000
+      },
+      {
+        "id": "cmwny55lu000hsf1g3xakonik",
+        "sku": "camiseta-negra--XL",
+        "price": 65000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55ly000isf1gj86djwty",
+    "slug": "camiseta-grafica",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55m7000msf1gxpkq0k79",
+        "sku": "camiseta-grafica--L",
+        "price": 72000
+      },
+      {
+        "id": "cmwny55mb000osf1gbi8ag0z9",
+        "sku": "camiseta-grafica--XL",
+        "price": 72000
+      },
+      {
+        "id": "cmwny55m2000ksf1gl1aodv05",
+        "sku": "camiseta-grafica--M",
+        "price": 72000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55mf000psf1gotfhpp2a",
+    "slug": "polo-pique",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55mi000rsf1gsv65xqnc",
+        "sku": "polo-pique--S",
+        "price": 89000
+      },
+      {
+        "id": "cmwny55mm000tsf1g27z72epm",
+        "sku": "polo-pique--M",
+        "price": 89000
+      },
+      {
+        "id": "cmwny55mq000vsf1gn2ouq70g",
+        "sku": "polo-pique--L",
+        "price": 89000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55mu000wsf1gprgtfqp5",
+    "slug": "polo-largo",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55mx000ysf1g88q81i24",
+        "sku": "polo-largo--M",
+        "price": 95000
+      },
+      {
+        "id": "cmwny55n00010sf1g9iqdcjzz",
+        "sku": "polo-largo--L",
+        "price": 95000
+      },
+      {
+        "id": "cmwny55n40012sf1gg7tyn6gp",
+        "sku": "polo-largo--XL",
+        "price": 95000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55n70013sf1g7b6g9e2t",
+    "slug": "polo-rayas",
+    "discountPrice": 89000,
+    "variants": [
+      {
+        "id": "cmwny55nb0015sf1g4s2uc96k",
+        "sku": "polo-rayas--S",
+        "price": 105000
+      },
+      {
+        "id": "cmwny55nf0017sf1g70s2etm8",
+        "sku": "polo-rayas--M",
+        "price": 105000
+      },
+      {
+        "id": "cmwny55nj0019sf1g1ux5u0er",
+        "sku": "polo-rayas--L",
+        "price": 105000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55nm001asf1g4oq8pw5e",
+    "slug": "oversize-blanca",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55nr001csf1ghlakvzc1",
+        "sku": "oversize-blanca--S",
+        "price": 98000
+      },
+      {
+        "id": "cmwny55nv001esf1g3pg1rk8k",
+        "sku": "oversize-blanca--M",
+        "price": 98000
+      },
+      {
+        "id": "cmwny55nz001gsf1g4xj2ljbw",
+        "sku": "oversize-blanca--L",
+        "price": 98000
+      },
+      {
+        "id": "cmwny55o2001isf1gfxi4h82y",
+        "sku": "oversize-blanca--XL",
+        "price": 98000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55ry003dsf1g1912ev11",
+    "slug": "buzo-canguro",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55s2003fsf1g6qg5e647",
+        "sku": "buzo-canguro--S",
+        "price": 129000
+      },
+      {
+        "id": "cmwny55s5003hsf1g8a1mb15q",
+        "sku": "buzo-canguro--M",
+        "price": 129000
+      },
+      {
+        "id": "cmwny55s9003jsf1g59nlm0h9",
+        "sku": "buzo-canguro--L",
+        "price": 129000
+      },
+      {
+        "id": "cmwny55sd003lsf1g23e0ly36",
+        "sku": "buzo-canguro--XL",
+        "price": 129000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55u9004gsf1gwp1in2d3",
+    "slug": "sudadera-degradado",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55ud004isf1ggorspmmv",
+        "sku": "sudadera-degradado--S",
+        "price": 139000
+      },
+      {
+        "id": "cmwny55ug004ksf1glbhyqi9d",
+        "sku": "sudadera-degradado--M",
+        "price": 139000
+      },
+      {
+        "id": "cmwny55uk004msf1g3fkyspuj",
+        "sku": "sudadera-degradado--L",
+        "price": 139000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55uo004nsf1geja6niji",
+    "slug": "jean-recto",
+    "discountPrice": 109000,
+    "variants": [
+      {
+        "id": "cmwny55v6004xsf1gpj2r48fn",
+        "sku": "jean-recto--36",
+        "price": 139000
+      },
+      {
+        "id": "cmwny55uv004rsf1ggmuvs2x7",
+        "sku": "jean-recto--30",
+        "price": 139000
+      },
+      {
+        "id": "cmwny55uy004tsf1gv8n3gczd",
+        "sku": "jean-recto--32",
+        "price": 139000
+      },
+      {
+        "id": "cmwny55ur004psf1g647himlj",
+        "sku": "jean-recto--28",
+        "price": 139000
+      },
+      {
+        "id": "cmwny55v2004vsf1gzsfh6o4i",
+        "sku": "jean-recto--34",
+        "price": 139000
+      }
+    ]
+  },
+  {
+    "id": "cmwny56070076sf1gpcqspz5d",
+    "slug": "locion-woody",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny560b0078sf1gqupgk165",
+        "sku": "locion-woody--100 ml",
+        "price": 119000
+      },
+      {
+        "id": "cmwny560e007asf1g5x8wl3xk",
+        "sku": "locion-woody--200 ml",
+        "price": 119000
+      }
+    ]
+  },
+  {
+    "id": "cmwny560h007bsf1gt9pjc9qd",
+    "slug": "locion-noche",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny560p007fsf1g93c3jffb",
+        "sku": "locion-noche--100 ml",
+        "price": 149000
+      },
+      {
+        "id": "cmwny560t007hsf1ghvhs8ols",
+        "sku": "locion-noche--200 ml",
+        "price": 149000
+      },
+      {
+        "id": "cmwny560l007dsf1geb9zcjez",
+        "sku": "locion-noche--50 ml",
+        "price": 149000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55o7001jsf1g5roenf72",
+    "slug": "oversize-caqui",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55oa001lsf1gx2hcetjn",
+        "sku": "oversize-caqui--M",
+        "price": 115000
+      },
+      {
+        "id": "cmwny55oe001nsf1gm8i9k3wj",
+        "sku": "oversize-caqui--L",
+        "price": 115000
+      },
+      {
+        "id": "cmwny55oh001psf1g3l0s2g3c",
+        "sku": "oversize-caqui--XL",
+        "price": 115000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55oz001xsf1gd3k6bg1y",
+    "slug": "vestir-azul",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55p2001zsf1gdh5izfhx",
+        "sku": "vestir-azul--15",
+        "price": 149000
+      },
+      {
+        "id": "cmwny55p60021sf1ghdngo8f0",
+        "sku": "vestir-azul--15.5",
+        "price": 149000
+      },
+      {
+        "id": "cmwny55p90023sf1gve6zwffy",
+        "sku": "vestir-azul--16",
+        "price": 149000
+      },
+      {
+        "id": "cmwny55pd0025sf1gtfebohbf",
+        "sku": "vestir-azul--16.5",
+        "price": 149000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55pg0026sf1gkvm3il49",
+    "slug": "vestir-blanca",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55pk0028sf1g13pm0b62",
+        "sku": "vestir-blanca--15",
+        "price": 169000
+      },
+      {
+        "id": "cmwny55po002asf1gghu4w3ls",
+        "sku": "vestir-blanca--15.5",
+        "price": 169000
+      },
+      {
+        "id": "cmwny55ps002csf1gax6oo95b",
+        "sku": "vestir-blanca--16",
+        "price": 169000
+      },
+      {
+        "id": "cmwny55pw002esf1g0sz8ry5h",
+        "sku": "vestir-blanca--17",
+        "price": 169000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55q0002fsf1giq6q42on",
+    "slug": "vestir-negra",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55q4002hsf1gmnpbfdl9",
+        "sku": "vestir-negra--15.5",
+        "price": 189000
+      },
+      {
+        "id": "cmwny55q8002jsf1gv3cs1aa5",
+        "sku": "vestir-negra--16",
+        "price": 189000
+      },
+      {
+        "id": "cmwny55qc002lsf1gygmvebv5",
+        "sku": "vestir-negra--16.5",
+        "price": 189000
+      },
+      {
+        "id": "cmwny55qg002nsf1g6326mq2n",
+        "sku": "vestir-negra--17",
+        "price": 189000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55r0002xsf1gmxp7qgp6",
+    "slug": "deportiva-short",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55r4002zsf1gztjwtsaf",
+        "sku": "deportiva-short--S",
+        "price": 135000
+      },
+      {
+        "id": "cmwny55r70031sf1g2k6zbv1d",
+        "sku": "deportiva-short--M",
+        "price": 135000
+      },
+      {
+        "id": "cmwny55rb0033sf1gasgnqymy",
+        "sku": "deportiva-short--L",
+        "price": 135000
+      },
+      {
+        "id": "cmwny55rf0035sf1gzekklyje",
+        "sku": "deportiva-short--XL",
+        "price": 135000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55rj0036sf1gghrfi11n",
+    "slug": "deportiva-conjunto",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55rm0038sf1gdcz0143w",
+        "sku": "deportiva-conjunto--M",
+        "price": 149000
+      },
+      {
+        "id": "cmwny55rq003asf1gwgy7f8xd",
+        "sku": "deportiva-conjunto--L",
+        "price": 149000
+      },
+      {
+        "id": "cmwny55ru003csf1g7d6flxyl",
+        "sku": "deportiva-conjunto--XL",
+        "price": 149000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55su003tsf1gk44m67yo",
+    "slug": "buzo-lana",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55sx003vsf1g7xwjbb2b",
+        "sku": "buzo-lana--M",
+        "price": 159000
+      },
+      {
+        "id": "cmwny55t0003xsf1gbs7ltzq1",
+        "sku": "buzo-lana--L",
+        "price": 159000
+      },
+      {
+        "id": "cmwny55t5003zsf1gu6lh4m1k",
+        "sku": "buzo-lana--XL",
+        "price": 159000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55jz0000sf1g2q90xkfw",
+    "slug": "camiseta-blanca",
+    "discountPrice": 49000,
+    "variants": [
+      {
+        "id": "cmwny55la0008sf1g9uqgi7pg",
+        "sku": "camiseta-blanca--XL",
+        "price": 59000
+      },
+      {
+        "id": "cmwny55ku0002sf1gisnlrb0v",
+        "sku": "camiseta-blanca--S",
+        "price": 59000
+      },
+      {
+        "id": "cmwny55l10004sf1g2ppay1dy",
+        "sku": "camiseta-blanca--M",
+        "price": 59000
+      },
+      {
+        "id": "cmwny55l60006sf1giykxwy95",
+        "sku": "camiseta-blanca--L",
+        "price": 59000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55qj002osf1gfnkd066f",
+    "slug": "deportiva-camiseta",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55qn002qsf1gvyiutzsq",
+        "sku": "deportiva-camiseta--S",
+        "price": 119000
+      },
+      {
+        "id": "cmwny55qq002ssf1gt9e36k00",
+        "sku": "deportiva-camiseta--M",
+        "price": 119000
+      },
+      {
+        "id": "cmwny55qx002wsf1g38x55591",
+        "sku": "deportiva-camiseta--XL",
+        "price": 119000
+      },
+      {
+        "id": "cmwny55qt002usf1gkwnt8vpw",
+        "sku": "deportiva-camiseta--L",
+        "price": 119000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55t90040sf1gnwy3jdra",
+    "slug": "sudadera-gris",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55td0042sf1g57fqzxw1",
+        "sku": "sudadera-gris--S",
+        "price": 109000
+      },
+      {
+        "id": "cmwny55tl0046sf1g3bc47rdj",
+        "sku": "sudadera-gris--L",
+        "price": 109000
+      },
+      {
+        "id": "cmwny55tp0048sf1gtal0wh2v",
+        "sku": "sudadera-gris--XL",
+        "price": 109000
+      },
+      {
+        "id": "cmwny55th0044sf1goevzryiu",
+        "sku": "sudadera-gris--M",
+        "price": 109000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55wh005isf1gwfhbjytd",
+    "slug": "zapato-running",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55wo005msf1greh8jkhd",
+        "sku": "zapato-running--39",
+        "price": 229000
+      },
+      {
+        "id": "cmwny55wk005ksf1gabp99y41",
+        "sku": "zapato-running--38",
+        "price": 229000
+      },
+      {
+        "id": "cmwny55wr005osf1g0rmtqct2",
+        "sku": "zapato-running--40",
+        "price": 229000
+      },
+      {
+        "id": "cmwny55wv005qsf1gjtan725o",
+        "sku": "zapato-running--41",
+        "price": 229000
+      },
+      {
+        "id": "cmwny55wz005ssf1gbbbtwt7t",
+        "sku": "zapato-running--42",
+        "price": 229000
+      },
+      {
+        "id": "cmwny55x4005usf1ggq0nfnvx",
+        "sku": "zapato-running--43",
+        "price": 229000
+      },
+      {
+        "id": "cmwny55x8005wsf1gei3tril2",
+        "sku": "zapato-running--44",
+        "price": 229000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55zo006ysf1g97nmpqhn",
+    "slug": "reloj-smart",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55zs0070sf1gsuuc1y43",
+        "sku": "reloj-smart--Única",
+        "price": 799000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55vu0057sf1g67b06wpi",
+    "slug": "jean-wide",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55vy0059sf1gl7vc5lgp",
+        "sku": "jean-wide--30",
+        "price": 179000
+      },
+      {
+        "id": "cmwny55w6005dsf1gf3jcrg4u",
+        "sku": "jean-wide--34",
+        "price": 179000
+      },
+      {
+        "id": "cmwny55wa005fsf1g58c7eapa",
+        "sku": "jean-wide--36",
+        "price": 179000
+      },
+      {
+        "id": "cmwny55wd005hsf1g99o8pdcl",
+        "sku": "jean-wide--38",
+        "price": 179000
+      },
+      {
+        "id": "cmwny55w2005bsf1g9m8y42qs",
+        "sku": "jean-wide--32",
+        "price": 179000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55ol001qsf1g3ise2oj6",
+    "slug": "oversize-capucha",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55os001usf1g3xtebw85",
+        "sku": "oversize-capucha--L",
+        "price": 124000
+      },
+      {
+        "id": "cmwny55ow001wsf1gbkjga005",
+        "sku": "oversize-capucha--XL",
+        "price": 124000
+      },
+      {
+        "id": "cmwny55op001ssf1g93nb45oa",
+        "sku": "oversize-capucha--M",
+        "price": 124000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55sg003msf1g5hhc36f4",
+    "slug": "buzo-cremallera",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55sn003qsf1g6prgq5uf",
+        "sku": "buzo-cremallera--L",
+        "price": 145000
+      },
+      {
+        "id": "cmwny55sq003ssf1gu9kfcc4f",
+        "sku": "buzo-cremallera--XL",
+        "price": 145000
+      },
+      {
+        "id": "cmwny55sj003osf1gtmc6o12k",
+        "sku": "buzo-cremallera--M",
+        "price": 145000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55ts0049sf1gny49t7ot",
+    "slug": "sudadera-negra",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55tw004bsf1geq5nwcl3",
+        "sku": "sudadera-negra--M",
+        "price": 125000
+      },
+      {
+        "id": "cmwny55u1004dsf1gh036xwdr",
+        "sku": "sudadera-negra--L",
+        "price": 125000
+      },
+      {
+        "id": "cmwny55u5004fsf1g82hvzz0b",
+        "sku": "sudadera-negra--XL",
+        "price": 125000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55va004ysf1ge65em1sf",
+    "slug": "jean-skinny",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55vm0054sf1giarmdkoc",
+        "sku": "jean-skinny--32",
+        "price": 159000
+      },
+      {
+        "id": "cmwny55vq0056sf1gjuqmb01v",
+        "sku": "jean-skinny--34",
+        "price": 159000
+      },
+      {
+        "id": "cmwny55ve0050sf1gdiuqpwqw",
+        "sku": "jean-skinny--28",
+        "price": 159000
+      },
+      {
+        "id": "cmwny55vi0052sf1g6k5s6cxq",
+        "sku": "jean-skinny--30",
+        "price": 159000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55xb005xsf1gi4n7leqp",
+    "slug": "zapato-casual",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55xf005zsf1gf3jsv13d",
+        "sku": "zapato-casual--39",
+        "price": 289000
+      },
+      {
+        "id": "cmwny55xj0061sf1gn6lghgp6",
+        "sku": "zapato-casual--40",
+        "price": 289000
+      },
+      {
+        "id": "cmwny55xn0063sf1glokvhmir",
+        "sku": "zapato-casual--41",
+        "price": 289000
+      },
+      {
+        "id": "cmwny55xr0065sf1gnbqaebup",
+        "sku": "zapato-casual--42",
+        "price": 289000
+      },
+      {
+        "id": "cmwny55xv0067sf1gx9ldt06n",
+        "sku": "zapato-casual--43",
+        "price": 289000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55yt006msf1g4j1go35x",
+    "slug": "gafa-wayfarer",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55yx006osf1glc76ct6m",
+        "sku": "gafa-wayfarer--Única",
+        "price": 199000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55z8006ssf1gpp6n0wpx",
+    "slug": "reloj-malla",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny55zc006usf1gjhkw8bhn",
+        "sku": "reloj-malla--Única",
+        "price": 389000
+      }
+    ]
+  },
+  {
+    "id": "cmwny55zw0071sf1g188lnwmk",
+    "slug": "locion-citrus",
+    "discountPrice": null,
+    "variants": [
+      {
+        "id": "cmwny56000073sf1g57d6cofa",
+        "sku": "locion-citrus--50 ml",
+        "price": 89000
+      },
+      {
+        "id": "cmwny56030075sf1gu8ht2bl9",
+        "sku": "locion-citrus--100 ml",
+        "price": 89000
+      }
+    ]
+  }
+]

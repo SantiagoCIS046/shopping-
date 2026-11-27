@@ -14,6 +14,9 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import { listOrders, OrderHistoryItem } from '../api/orders';
+import { getPaymentLink } from '../api/payments';
+import { SavedDataCard } from '../components/SavedDataCard';
+import { Linking } from 'react-native';
 import { formatCOP } from '../data/products';
 import { colors, radius, spacing, tabBarSpacing } from '../shop/tokens';
 
@@ -110,7 +113,7 @@ export function ProfileScreen({ onSignedOut }: { onSignedOut: () => void }) {
     <View style={styles.root}>
       <AuthBackdrop intensity={70} />
 
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={[]}>
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           {/* Cabecera del usuario */}
           <View style={styles.header}>
@@ -169,6 +172,7 @@ export function ProfileScreen({ onSignedOut }: { onSignedOut: () => void }) {
                           color={colors.textMuted}
                         />
                       </Pressable>
+                      {order.status === 'pendiente_pago' ? <PayAgainButton orderNumber={order.orderNumber} /> : null}
                       {open ? (
                         <View style={styles.orderItems}>
                           {order.items.map((item) => (
@@ -242,6 +246,9 @@ export function ProfileScreen({ onSignedOut }: { onSignedOut: () => void }) {
           {/* Panel de administración (solo ADMIN_EMAILS) */}
           {user?.isAdmin ? <AdminPanel /> : null}
 
+          {/* Datos de pago y envío: se reutilizan en el checkout */}
+          <SavedDataCard />
+
           {/* Legal */}
           <GlassCard>
             <SectionTitle icon="document-text-outline" label="Legal y políticas" />
@@ -297,6 +304,32 @@ export function ProfileScreen({ onSignedOut }: { onSignedOut: () => void }) {
           </Pressable>
         </ScrollView>
       </SafeAreaView>
+    </View>
+  );
+}
+
+/** Genera un enlace de pago NUEVO para un pedido pendiente (cada enlace sirve para un solo intento). */
+function PayAgainButton({ orderNumber }: { orderNumber: string }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const payAgain = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const { url } = await getPaymentLink(orderNumber);
+      await Linking.openURL(url);
+    } catch {
+      setMsg('No pudimos abrir el pago. Intenta de nuevo.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <View style={styles.payAgainWrap}>
+      <PrimaryButton title="Pagar este pedido" onPress={payAgain} loading={busy} />
+      {msg ? <Text style={styles.feedback}>{msg}</Text> : null}
     </View>
   );
 }
@@ -423,5 +456,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(226, 118, 107, 0.10)',
     marginTop: spacing.sm,
   },
+  payAgainWrap: { marginTop: spacing.sm },
   signOutText: { color: colors.danger, fontSize: 15, fontWeight: '600' },
 });

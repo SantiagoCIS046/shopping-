@@ -19,8 +19,19 @@ const COUNTRY_TAXES: Record<string, { name: string; rate: number }> = {
   US: { name: 'Sales Tax', rate: 0.07 },
 };
 
-const SHIPPING_COST = 15000;
 const FREE_SHIPPING_FROM = 300000;
+
+// Envío por tramos según el subtotal. Debe coincidir con mobile/src/shop/pricing.ts.
+const SHIPPING_TIERS: Array<{ upTo: number; cost: number }> = [
+  { upTo: 50000, cost: 3000 },
+  { upTo: 150000, cost: 6000 },
+  { upTo: FREE_SHIPPING_FROM, cost: 10000 },
+];
+
+function shippingFor(subtotal: number): number {
+  if (subtotal <= 0 || subtotal >= FREE_SHIPPING_FROM) return 0;
+  return SHIPPING_TIERS.find((t) => subtotal < t.upTo)?.cost ?? 0;
+}
 
 type ItemInput = { sku?: unknown; quantity?: unknown };
 
@@ -47,13 +58,15 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     const userId = (req as Request & { userId?: string }).userId;
     const buyer = await prisma.user.findUnique({ where: { id: userId } });
 
-    const { items, paymentMethod, country, customerEmail, phone, shippingAddress } = req.body as {
+    const { items, paymentMethod, country, customerEmail, phone, shippingAddress, customerDocType, customerDocNumber } = req.body as {
       items?: ItemInput[];
       paymentMethod?: unknown;
       country?: unknown;
       customerEmail?: unknown;
       phone?: unknown;
       shippingAddress?: unknown;
+      customerDocType?: unknown;
+      customerDocNumber?: unknown;
     };
 
     if (!Array.isArray(items) || items.length === 0 || items.length > 50) {
@@ -61,6 +74,13 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
     }
     if (typeof paymentMethod !== 'string' || !PAYMENT_METHODS.has(paymentMethod)) {
       return res.status(400).json({ error: 'Método de pago inválido' });
+    }
+
+    // Documento para la factura electrónica (DIAN)
+    const docType = typeof customerDocType === 'string' ? customerDocType.toUpperCase() : '';
+    const docNumber = typeof customerDocNumber === 'string' ? customerDocNumber.replace(/[\s.-]/g, '') : '';
+    if (!['CC', 'CE', 'NIT', 'PAS'].includes(docType) || !/^[0-9A-Za-z]{5,20}$/.test(docNumber)) {
+      return res.status(400).json({ error: 'Escribe un tipo y número de documento válidos para tu factura' });
     }
 
     const email =
@@ -103,18 +123,20 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
         });
       }
 
-      subtotal += variant.price * quantity;
+      // Precio efectivo: si el producto está en oferta, manda el precio de oferta
+      const unitPrice = variant.product.discountPrice ?? variant.price;
+      subtotal += unitPrice * quantity;
       orderItems.push({
         productId: variant.sku,
         name: variant.product.name, // snapshot
         size: variant.size,
         quantity,
-        unitPrice: variant.price, // precio del servidor
+        unitPrice, // precio del servidor (con oferta si aplica)
       });
     }
 
     const taxAmount = Math.round(subtotal * tax.rate);
-    const shippingCost = subtotal === 0 || subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING_COST;
+    const shippingCost = shippingFor(subtotal);
     const total = subtotal + taxAmount + shippingCost;
 
     try {
@@ -137,6 +159,9 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
             paymentMethod,
             customerEmail: email,
             phone: typeof phone === 'string' && phone.trim() ? phone.trim() : null,
+            customerDocType: docType,
+            customerDocNumber: docNumber,
+            invoiceStatus: 'pending',
             shippingAddress:
               shippingAddress && typeof shippingAddress === 'object' ? shippingAddress : undefined,
             subtotal,
@@ -150,6 +175,22 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
           include: { items: true },
         });
       });
+
+      // Guarda los datos de pago y envío del usuario para la próxima compra
+      if (userId) {
+        const savedAddress = shippingAddress && typeof shippingAddress === 'object' ? shippingAddress : null;
+        await prisma.user
+          .update({
+            where: { id: userId },
+            data: {
+              phone: typeof phone === 'string' && phone.trim() ? phone.trim() : undefined,
+              docType,
+              docNumber,
+              ...(savedAddress ? { addresses: [savedAddress] } : {}),
+            },
+          })
+          .catch((err) => console.error('[orders:save-profile]', err));
+      }
 
       res.status(201).json({
         id: order.id,

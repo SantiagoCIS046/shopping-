@@ -6,9 +6,11 @@ import { PrismaClient } from '@prisma/client';
 import authRouter from './auth';
 import ordersRouter from './orders';
 import webhooksRouter from './webhooks';
+import paymentsRouter from './payments';
 import adminRouter from './admin';
 import catalogRouter from './catalog';
 import vistaRouter from './vista';
+import vistaGenerateRouter from './vistaGenerate';
 import { startReservationSweeper } from './reservations';
 
 const app = express();
@@ -40,6 +42,9 @@ app.use('/orders', ordersRouter);
 // Webhooks de la pasarela de pago (confirmación silenciosa)
 app.use('/webhooks', webhooksRouter);
 
+// Pagos Wompi: enlace de pago y webhook de eventos
+app.use('/payments', paymentsRouter);
+
 // Panel administrativo (solo correos en ADMIN_EMAILS)
 app.use('/admin', adminRouter);
 
@@ -47,6 +52,7 @@ app.use('/admin', adminRouter);
 app.use('/catalog', catalogRouter);
 
 // Probador Vista: sesiones, guardado de looks y estadísticas
+app.use('/vista', vistaGenerateRouter);
 app.use('/vista', vistaRouter);
 
 // Imágenes guardadas (looks del probador)

@@ -26,8 +26,32 @@ const DUMMY_HASH = bcrypt.hashSync('valor-que-nunca-coincide', BCRYPT_ROUNDS);
 
 type Credentials = { name?: string; email?: string; password?: string };
 
-function publicUser(user: { id: string; name: string; email: string }) {
-  return { id: user.id, name: user.name, email: user.email };
+type ProfileUser = {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  docType?: string | null;
+  docNumber?: string | null;
+  addresses?: unknown;
+};
+
+/** Primera dirección guardada del usuario (o null). */
+function savedAddress(raw: unknown) {
+  const first = Array.isArray(raw) ? raw[0] : null;
+  return first && typeof first === 'object' ? first : null;
+}
+
+function publicUser(user: ProfileUser) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone ?? null,
+    docType: user.docType ?? null,
+    docNumber: user.docNumber ?? null,
+    address: savedAddress(user.addresses),
+  };
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -273,13 +297,49 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
 router.patch('/profile', requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req as Request & { userId?: string }).userId;
-    const { name } = req.body as { name?: unknown };
-    if (typeof name !== 'string' || name.trim().length < 2) {
-      return res.status(400).json({ error: 'El nombre debe tener al menos 2 caracteres' });
+    const body = req.body as {
+      name?: unknown;
+      phone?: unknown;
+      docType?: unknown;
+      docNumber?: unknown;
+      address?: unknown;
+    };
+    const data: Record<string, unknown> = {};
+
+    if (body.name !== undefined) {
+      if (typeof body.name !== 'string' || body.name.trim().length < 2) {
+        return res.status(400).json({ error: 'El nombre debe tener al menos 2 caracteres' });
+      }
+      data.name = body.name.trim();
     }
+    if (body.phone !== undefined) {
+      const phone = typeof body.phone === 'string' ? body.phone.trim() : '';
+      if (phone && phone.replace(/\D/g, '').length < 7) {
+        return res.status(400).json({ error: 'Escribe un teléfono válido' });
+      }
+      data.phone = phone || null;
+    }
+    if (body.docType !== undefined || body.docNumber !== undefined) {
+      const docType = typeof body.docType === 'string' ? body.docType.toUpperCase() : '';
+      const docNumber = typeof body.docNumber === 'string' ? body.docNumber.replace(/[\s.-]/g, '') : '';
+      if (docType && !['CC', 'CE', 'NIT', 'PAS'].includes(docType)) {
+        return res.status(400).json({ error: 'Tipo de documento inválido' });
+      }
+      if (docNumber && !/^[0-9A-Za-z]{5,20}$/.test(docNumber)) {
+        return res.status(400).json({ error: 'Número de documento inválido' });
+      }
+      data.docType = docType || null;
+      data.docNumber = docNumber || null;
+    }
+    if (body.address !== undefined) {
+      const a = (body.address ?? {}) as { city?: unknown; address?: unknown; neighborhood?: unknown };
+      const clean = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+      data.addresses = [{ city: clean(a.city), address: clean(a.address), neighborhood: clean(a.neighborhood) }];
+    }
+
     const user = await prisma.user.update({
       where: { id: userId },
-      data: { name: name.trim() },
+      data,
     });
     res.json({ user: publicUser(user) });
   } catch (err) {

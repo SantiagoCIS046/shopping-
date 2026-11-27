@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -13,18 +13,21 @@ import { colors, radius, spacing } from '../shop/tokens';
 import { formatCOP } from '../data/products';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { createOrder, CreatedOrder } from '../api/orders';
+import { createOrder, CreatedOrder, DocType } from '../api/orders';
+import { getPaymentLink } from '../api/payments';
+import { getProfile } from '../api/profile';
 import { calcTotals } from '../shop/pricing';
 import { COUNTRY_CODE } from '../config';
 
-// La tarjeta se procesa en una pasarela (Wompi, ePayco o Mercado Pago).
-// La app nunca guarda datos de tarjeta.
-const paymentMethods = [
-  { id: 'transfer', label: 'Transferencia bancaria', hint: 'Confirma al recibir' },
-  { id: 'pse', label: 'PSE', hint: 'Débito desde tu banco' },
-  { id: 'nequi', label: 'Nequi', hint: 'Desde tu app' },
-  { id: 'card', label: 'Tarjeta de crédito o débito', hint: 'Pasarela segura' },
-] as const;
+// El pago lo procesa Wompi (PSE, Nequi, tarjeta o transferencia). La app nunca guarda datos de tarjeta.
+const PAYMENT_METHOD = 'card';
+
+const DOC_TYPES: Array<{ id: DocType; label: string }> = [
+  { id: 'CC', label: 'Cédula' },
+  { id: 'CE', label: 'Extranjería' },
+  { id: 'NIT', label: 'NIT' },
+  { id: 'PAS', label: 'Pasaporte' },
+];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,7 +38,7 @@ type Props = {
 
 /**
  * Checkout en acordeón, todo en una pantalla y sin recargas:
- * 1) Contacto → 2) Envío → 3) Pago, con resumen colapsable arriba
+ * 1) Contacto y documento → 2) Envío → 3) Pago, con resumen colapsable arriba
  * y botón fijo que muestra el monto exacto a pagar.
  */
 export function CheckoutScreen({ onBack, onDone }: Props) {
@@ -49,15 +52,36 @@ export function CheckoutScreen({ onBack, onDone }: Props) {
 
   const [email, setEmail] = useState(user?.email ?? '');
   const [phone, setPhone] = useState('');
+  const [docType, setDocType] = useState<DocType>('CC');
+  const [docNumber, setDocNumber] = useState('');
   const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
 
-  const [method, setMethod] = useState<(typeof paymentMethods)[number]['id']>('transfer');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [placing, setPlacing] = useState(false);
   const [created, setCreated] = useState<CreatedOrder | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Precarga los datos guardados en el perfil: no hay que escribirlos otra vez
+  useEffect(() => {
+    let cancelled = false;
+    getProfile()
+      .then((u) => {
+        if (cancelled) return;
+        setPhone((v) => v || u.phone || '');
+        setDocType((v) => u.docType ?? v);
+        setDocNumber((v) => v || u.docNumber || '');
+        setCity((v) => v || u.address?.city || '');
+        setAddress((v) => v || u.address?.address || '');
+        setNeighborhood((v) => v || u.address?.neighborhood || '');
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const continueContact = () => {
     setError(null);
@@ -67,6 +91,10 @@ export function CheckoutScreen({ onBack, onDone }: Props) {
     }
     if (phone.trim().replace(/\D/g, '').length < 7) {
       setError('Escribe un teléfono de contacto');
+      return;
+    }
+    if (!/^[0-9A-Za-z]{5,20}$/.test(docNumber.trim().replace(/[\s.-]/g, ''))) {
+      setError('Escribe tu número de documento (sin puntos ni espacios)');
       return;
     }
     setStep(2);
@@ -98,10 +126,12 @@ export function CheckoutScreen({ onBack, onDone }: Props) {
     setPlacing(true);
     try {
       const order = await createOrder({
-        paymentMethod: method,
+        paymentMethod: PAYMENT_METHOD,
         country: COUNTRY_CODE,
         customerEmail: email.trim(),
         phone: phone.trim(),
+        customerDocType: docType,
+        customerDocNumber: docNumber.trim().replace(/[\s.-]/g, ''),
         shippingAddress: {
           city: city.trim(),
           address: address.trim(),
@@ -112,8 +142,18 @@ export function CheckoutScreen({ onBack, onDone }: Props) {
           quantity: i.quantity,
         })),
       });
-      setCreated(order);
       clear();
+      setCreated(order);
+
+      // Abre la pasarela de Wompi con el monto exacto del pedido
+      try {
+        const { url } = await getPaymentLink(order.orderNumber);
+        await Linking.openURL(url);
+      } catch {
+        setPaymentError(
+          'Tu pedido quedó creado, pero no pudimos abrir el pago. Entra a Perfil › Mis pedidos para intentarlo de nuevo.',
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No pudimos crear el pedido');
     } finally {
@@ -144,8 +184,10 @@ export function CheckoutScreen({ onBack, onDone }: Props) {
               <Text style={styles.successText}>
                 Número <Text style={styles.successId}>#{created.orderNumber}</Text>
                 {'\n'}Total a pagar: {formatCOP(created.total)}
-                {'\n\n'}Cuando la pasarela confirme el pago te llegará un correo a{' '}
-                {created.orderNumber ? email.trim() : ''} con la factura.
+                {'\n\n'}
+                {paymentError
+                  ? paymentError
+                  : 'Completa el pago en la ventana de Wompi. Cuando se confirme, te llegará un correo con tu factura.'}
               </Text>
               <PrimaryButton title="Volver a la tienda" onPress={onDone} />
             </GlassCard>
@@ -167,7 +209,7 @@ export function CheckoutScreen({ onBack, onDone }: Props) {
                 <Text style={styles.summaryToggleText}>
                   {summaryOpen
                     ? 'Ocultar resumen'
-                    : `Ver resumen de compra (${totals.freeShipping ? items.length : items.length} artículo${items.length === 1 ? '' : 's'}) — ${formatCOP(totals.total)}`}
+                    : `Ver resumen de compra (${items.length} artículo${items.length === 1 ? '' : 's'}) — ${formatCOP(totals.total)}`}
                 </Text>
               </Pressable>
 
@@ -205,7 +247,7 @@ export function CheckoutScreen({ onBack, onDone }: Props) {
                   </GlassCard>
                 ) : null}
 
-                {/* Paso 1: Contacto */}
+                {/* Paso 1: Contacto y documento */}
                 <GlassCard style={styles.stepCard}>
                   <StepHeader
                     n={1}
@@ -234,11 +276,37 @@ export function CheckoutScreen({ onBack, onDone }: Props) {
                         textContentType="telephoneNumber"
                         style={styles.field}
                       />
+                      <Text style={styles.label}>Documento para tu factura</Text>
+                      <View style={styles.docRow}>
+                        {DOC_TYPES.map((d) => {
+                          const active = docType === d.id;
+                          return (
+                            <Pressable
+                              key={d.id}
+                              accessibilityRole="radio"
+                              accessibilityState={{ selected: active }}
+                              onPress={() => setDocType(d.id)}
+                              style={[styles.docChip, active && styles.docChipActive]}
+                            >
+                              <Text style={[styles.docChipText, active && styles.docChipTextActive]}>{d.label}</Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                      <GlassInput
+                        value={docNumber}
+                        onChangeText={setDocNumber}
+                        placeholder="Número de documento"
+                        keyboardType="default"
+                        autoCapitalize="characters"
+                        style={styles.field}
+                      />
+                      {error ? <Text style={styles.error}>{error}</Text> : null}
                       <PrimaryButton title="Continuar" onPress={continueContact} />
                     </View>
                   ) : (
                     <Text style={styles.stepDone} numberOfLines={1}>
-                      {email.trim()} · {phone.trim()}
+                      {email.trim()} · {phone.trim()} · {docType} {docNumber.trim()}
                     </Text>
                   )}
                 </GlassCard>
@@ -279,6 +347,7 @@ export function CheckoutScreen({ onBack, onDone }: Props) {
                         onSubmitEditing={continueShipping}
                         returnKeyType="done"
                       />
+                      {error ? <Text style={styles.error}>{error}</Text> : null}
                       <PrimaryButton title="Continuar" onPress={continueShipping} />
                     </View>
                   ) : step > 2 ? (
@@ -295,21 +364,9 @@ export function CheckoutScreen({ onBack, onDone }: Props) {
                   <StepHeader n={3} title="Pago" done={false} open={step === 3} onPress={() => undefined} />
                   {step === 3 ? (
                     <View style={styles.stepBody}>
-                      {paymentMethods.map((m) => {
-                        const selected = m.id === method;
-                        return (
-                          <Pressable
-                            key={m.id}
-                            accessibilityRole="radio"
-                            accessibilityState={{ selected }}
-                            onPress={() => setMethod(m.id)}
-                            style={[styles.method, selected && styles.methodActive]}
-                          >
-                            <Text style={styles.methodLabel}>{m.label}</Text>
-                            <Text style={styles.methodHint}>{m.hint}</Text>
-                          </Pressable>
-                        );
-                      })}
+                      <Text style={styles.payText}>
+                        Pagarás de forma segura con Wompi: PSE, Nequi, tarjeta o transferencia. Elige el medio de pago en su ventana.
+                      </Text>
                       {error ? <Text style={styles.error}>{error}</Text> : null}
                       <Pressable
                         accessibilityRole="checkbox"
@@ -336,12 +393,12 @@ export function CheckoutScreen({ onBack, onDone }: Props) {
                       <View style={styles.notice}>
                         <Ionicons name="lock-closed" size={13} color={colors.textSecondary} />
                         <Text style={styles.noticeText}>
-                          Pago procesado por la pasarela; la app nunca guarda tus datos de tarjeta.
+                          La app nunca guarda tus datos de tarjeta; los procesa la pasarela.
                         </Text>
                       </View>
                     </View>
                   ) : (
-                  <Text style={styles.stepPending}>Completa contacto y envío primero</Text>
+                    <Text style={styles.stepPending}>Completa contacto y envío primero</Text>
                   )}
                 </GlassCard>
               </ScrollView>
@@ -444,17 +501,22 @@ const styles = StyleSheet.create({
   stepDone: { color: colors.textMuted, fontSize: 12.5, marginTop: 6 },
   stepPending: { color: colors.textMuted, fontSize: 12.5, marginTop: 6 },
   field: { marginBottom: spacing.md },
-  method: {
-    padding: spacing.lg,
-    borderRadius: radius.lg,
+  label: { color: colors.textSecondary, fontSize: 12.5, marginBottom: 6 },
+  docRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: spacing.md },
+  docChip: {
+    paddingHorizontal: 12,
+    height: 32,
+    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.glassBorder,
     backgroundColor: colors.glassFill,
-    marginBottom: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  methodActive: { borderWidth: 2, borderColor: colors.accent, backgroundColor: colors.accentSoft },
-  methodLabel: { color: colors.textPrimary, fontSize: 14, fontWeight: '500' },
-  methodHint: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
+  docChipActive: { borderColor: colors.accent, borderWidth: 2, backgroundColor: colors.accentSoft },
+  docChipText: { color: colors.textSecondary, fontSize: 12.5, fontWeight: '500' },
+  docChipTextActive: { color: colors.textPrimary, fontWeight: '700' },
+  payText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, marginBottom: spacing.md },
   error: {
     color: colors.danger,
     fontSize: 13.5,

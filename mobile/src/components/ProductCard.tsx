@@ -2,7 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { formatCOP, Product } from '../data/products';
-import { colors, radius, spacing } from '../shop/tokens';
+import { colors, fonts, radius, spacing } from '../shop/tokens';
 import { ProductImage } from './ProductImage';
 
 type Props = {
@@ -22,7 +22,8 @@ export function ProductCard({ product, width, onOpen, onAddToCart }: Props) {
       style={[styles.card, width != null && { width }]}
     >
       <View style={styles.imageWrap}>
-        <ProductImage product={product} style={styles.image} iconSize={34} />
+        {/* Foto 1:1 sobre blanco, imagen completa con ~8 % de margen interior */}
+        <ProductImage product={product} style={styles.image} iconSize={34} contentFit="contain" />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Agregar ${product.name} al carrito`}
@@ -34,7 +35,7 @@ export function ProductCard({ product, width, onOpen, onAddToCart }: Props) {
         </Pressable>
       </View>
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
+        <Text style={styles.name} numberOfLines={2}>
           {product.name}
         </Text>
         <Text style={styles.price}>{formatCOP(product.price)}</Text>
@@ -51,16 +52,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   imageWrap: {
-    borderRadius: radius.lg,
+    aspectRatio: 1,
+    borderRadius: radius.sm,
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
   },
   image: {
-    width: '100%',
-    height: 210,
+    width: '84%',
+    height: '84%',
+    alignSelf: 'center',
+    marginTop: '8%',
   },
   info: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 4,
   },
   add: {
     position: 'absolute',
@@ -69,24 +73,25 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.accentButton,
     alignItems: 'center',
     justifyContent: 'center',
   },
   name: {
     color: colors.textPrimary,
+    fontFamily: fonts.bodyMedium,
     fontSize: 14,
-    fontWeight: '600',
     marginTop: spacing.sm + 2,
   },
   price: {
     color: colors.accent,
+    fontFamily: fonts.bodyBold,
     fontSize: 14,
-    fontWeight: '600',
     marginTop: 2,
   },
   sizes: {
     color: colors.textMuted,
+    fontFamily: fonts.body,
     fontSize: 12,
     marginTop: 2,
   },

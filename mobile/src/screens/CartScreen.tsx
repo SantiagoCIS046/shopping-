@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList, MainTabParamList } from '../navigation/types';
@@ -10,17 +10,19 @@ import { AuthBackdrop } from '../components/AuthBackdrop';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ProductImage } from '../components/ProductImage';
-import { useCart } from '../context/CartContext';
+import { CartItem, useCart } from '../context/CartContext';
 import { formatCOP, products } from '../data/products';
 import { FREE_SHIPPING_FROM, calcTotals } from '../shop/pricing';
 import { colors, radius, spacing, tabBarSpacing } from '../shop/tokens';
+import { useStockIndex, variantOf } from '../shop/stock';
 
 /**
  * Carrito de compras: lista de lo escogido con cantidades, resumen
  * con impuesto nacional (IVA) y envío, y botón para pagar.
+ * Verifica stock y precio reales con el servidor antes de dejar pagar.
  */
 export function CartScreen() {
-  const { items, total, count, setQuantity, remove } = useCart();
+  const { items, total, count, setQuantity, remove, sync } = useCart();
   const totals = calcTotals(total);
   const tabNavigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
   const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -28,11 +30,54 @@ export function CartScreen() {
   const goPay = () => rootNavigation.navigate('Checkout');
   const goExplore = () => tabNavigation.navigate('Tienda');
 
+  // Stock y precio reales del servidor para lo que hay en el carrito
+  const isFocused = useIsFocused();
+  const index = useStockIndex(
+    items.map((i) => i.productId),
+    isFocused,
+  );
+
+  // Al llegar la información del servidor: ajusta precios y topes de cantidad
+  useEffect(() => {
+    if (!index) return;
+    sync(
+      items.map((i) => {
+        const v = variantOf(index, i.productId, i.size);
+        return {
+          productId: i.productId,
+          size: i.size,
+          price: v?.price ?? i.price,
+          available: index[i.productId] ? (v?.available ?? 0) : 0,
+        };
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [index]);
+
+  // Unidades disponibles de una línea (null = aún no sabemos)
+  const availableOf = (item: CartItem): number | null => {
+    if (!index) return null;
+    if (!index[item.productId]) return 0;
+    return variantOf(index, item.productId, item.size)?.available ?? 0;
+  };
+
+  // Motivo por el que una línea no se puede pagar tal como está (null = ok)
+  const problemOf = (item: CartItem): string | null => {
+    if (!index) return null;
+    if (!index[item.productId]) return 'Este producto ya no está disponible';
+    const available = availableOf(item) ?? 0;
+    if (available === 0) return `Talla ${item.size} agotada`;
+    if (item.quantity > available) return `Solo quedan ${available} en talla ${item.size}`;
+    return null;
+  };
+
+  const blocked = items.some((i) => problemOf(i) !== null);
+
   return (
     <View style={styles.root}>
       <AuthBackdrop intensity={70} />
 
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={[]}>
         <View style={styles.topBar}>
           <Text style={styles.title}>Tu carrito</Text>
           {count > 0 ? <Text style={styles.count}>{count} artículo{count === 1 ? '' : 's'}</Text> : null}
@@ -64,6 +109,9 @@ export function CartScreen() {
 
               {items.map((item) => {
                 const product = products.find((p) => p.id === item.productId);
+                const problem = problemOf(item);
+                const available = availableOf(item);
+                const plusDisabled = available !== null && item.quantity >= available;
                 return (
                   <GlassCard key={`${item.productId}-${item.size}`} style={styles.itemCard}>
                     <View style={styles.itemRow}>
@@ -87,6 +135,7 @@ export function CartScreen() {
                           {item.name}
                         </Text>
                         <Text style={styles.itemMeta}>Talla {item.size} · {formatCOP(item.price)}</Text>
+                        {problem ? <Text style={styles.itemWarn}>{problem}</Text> : null}
 
                         <View style={styles.itemControls}>
                           <View style={styles.stepper}>
@@ -102,8 +151,10 @@ export function CartScreen() {
                             <Pressable
                               accessibilityRole="button"
                               accessibilityLabel={`Agregar una unidad de ${item.name}`}
+                              accessibilityState={{ disabled: plusDisabled }}
+                              disabled={plusDisabled}
                               onPress={() => setQuantity(item.productId, item.size, item.quantity + 1)}
-                              style={styles.stepBtn}
+                              style={[styles.stepBtn, plusDisabled && styles.stepDisabled]}
                             >
                               <Ionicons name="add" size={16} color={colors.textPrimary} />
                             </Pressable>
@@ -142,7 +193,10 @@ export function CartScreen() {
             </ScrollView>
 
             <View style={styles.footer}>
-              <PrimaryButton title="Pagar" onPress={goPay} />
+              {blocked ? (
+                <Text style={styles.warn}>Quita o ajusta los productos marcados para continuar.</Text>
+              ) : null}
+              <PrimaryButton title="Pagar" onPress={goPay} disabled={blocked} />
             </View>
           </>
         )}
@@ -192,6 +246,7 @@ const styles = StyleSheet.create({
   itemInfo: { flex: 1 },
   itemName: { color: colors.textPrimary, fontSize: 14.5, fontWeight: '600' },
   itemMeta: { color: colors.textMuted, fontSize: 12.5, marginTop: 2 },
+  itemWarn: { color: colors.danger, fontSize: 12, fontWeight: '600', marginTop: 4 },
   itemControls: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -217,6 +272,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.glassFillStrong,
   },
+  stepDisabled: { opacity: 0.35 },
   stepValue: { color: colors.textPrimary, fontSize: 14, fontWeight: '600', minWidth: 22, textAlign: 'center' },
   trash: {
     width: 38,
@@ -241,6 +297,7 @@ const styles = StyleSheet.create({
   totalLabel: { color: colors.textPrimary, fontSize: 16, fontWeight: '700' },
   totalValue: { color: colors.accent, fontSize: 18, fontWeight: '700' },
   footer: { paddingHorizontal: spacing.xl, paddingBottom: tabBarSpacing + spacing.lg },
+  warn: { color: colors.danger, fontSize: 12.5, textAlign: 'center', marginBottom: spacing.sm },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.xxl, gap: spacing.sm },
   emptyTitle: { color: colors.textPrimary, fontSize: 18, fontWeight: '600' },
   emptyText: { color: colors.textMuted, fontSize: 13.5, textAlign: 'center' },

@@ -9,12 +9,21 @@ export type CartItem = {
   quantity: number;
 };
 
+/** Datos reales del servidor para ajustar una línea del carrito. */
+export type CartSync = {
+  productId: string;
+  size: string;
+  price: number;
+  available: number; // unidades con stock; 0 = agotada o ya no existe
+};
+
 type CartContextValue = {
   items: CartItem[];
   add: (item: Omit<CartItem, 'quantity'>) => void;
   remove: (productId: string, size: string) => void;
   setQuantity: (productId: string, size: string, quantity: number) => void;
   clear: () => void;
+  sync: (updates: CartSync[]) => void;
   total: number;
   count: number;
 };
@@ -25,8 +34,7 @@ const CART_KEY = 'shopping.cart.v1';
 
 /**
  * Carrito del usuario. Se guarda en el almacenamiento seguro del
- * dispositivo para que no se pierda al cerrar la app; más adelante
- * se sincroniza con el backend por usuario.
+ * dispositivo para que no se pierda al cerrar la app.
  */
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -90,10 +98,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     const clear: CartContextValue['clear'] = () => setItems([]);
 
+    // Actualiza precio y tope de cantidad con lo que dice el servidor.
+    // Devuelve el mismo estado si nada cambió, para no re-renderizar en vano.
+    const sync: CartContextValue['sync'] = (updates) =>
+      setItems((prev) => {
+        let changed = false;
+        const next = prev.map((i) => {
+          const u = updates.find((x) => x.productId === i.productId && x.size === i.size);
+          if (!u) return i;
+          const quantity = u.available > 0 ? Math.min(i.quantity, u.available) : i.quantity;
+          if (u.price === i.price && quantity === i.quantity) return i;
+          changed = true;
+          return { ...i, price: u.price, quantity };
+        });
+        return changed ? next : prev;
+      });
+
     const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
     const count = items.reduce((sum, i) => sum + i.quantity, 0);
 
-    return { items, add, remove, setQuantity, clear, total, count };
+    return { items, add, remove, setQuantity, clear, sync, total, count };
   }, [items]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
+  Alert,
   Animated,
+  Easing,
   FlatList,
   Pressable,
   ScrollView,
@@ -11,46 +14,27 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import { useFonts } from 'expo-font';
+import { PlayfairDisplay_600SemiBold } from '@expo-google-fonts/playfair-display';
+import { DMSans_400Regular, DMSans_500Medium, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { AuthBackdrop } from '../components/AuthBackdrop';
 import { ProductCard } from '../components/ProductCard';
 import { GlassCard } from '../components/GlassCard';
 import { useCart } from '../context/CartContext';
 import type { Product } from '../data/products';
-import {
-  fetchCategories,
-  fetchProducts,
-  CatalogCategories,
-  CatalogFilters,
-  CatalogProduct,
-  CatalogSizeOption,
-} from '../api/catalog';
-import { colors, radius, spacing, tabBarSpacing } from '../shop/tokens';
-import { fill } from '../theme';
+import { fetchProducts, CatalogFilters, CatalogProduct, CatalogSizeOption } from '../api/catalog';
+import { buildBubbles, buildSegments, useShopNav } from '../shop/shopNav';
+import { colors, fonts, radius, spacing, tabBarSpacing } from '../shop/tokens';
+import { fill, INTRO_IMAGE } from '../theme';
+
+const BENEFITS = 'Envío gratis desde $300.000  ✦  Cambios hasta 30 días  ✦  Básicos premium  ✦  Nuevos drops cada temporada  ✦  ';
 
 type Props = {
   onOpenProduct: (product: Product) => void;
-};
-
-type Bubble = {
-  id: string;
-  label: string;
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  accent?: boolean; // Ofertas resaltada en otro color
-  filters: CatalogFilters;
-};
-
-const SEGMENT_LABEL: Record<string, string> = {
-  mujer: 'Mujer',
-  hombre: 'Hombre',
-  unisex: 'Unisex',
-  ninos: 'Niños',
-};
-
-const COLLECTION_ICON: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
-  basicos: 'shirt-outline',
-  streetwear: 'flash-outline',
-  deportivo: 'barbell-outline',
+  searchQuery?: string;
+  onClearSearch?: () => void;
 };
 
 const PRICE_RANGES: Array<{ id: string; label: string; min?: number; max?: number }> = [
@@ -73,53 +57,41 @@ const SORTS: Array<{ id: NonNullable<CatalogFilters['sort']>; label: string }> =
  * C) Chips de categoría + filtros (talla sin stock tachada, precio, orden)
  * Todo alimentado por las categorías dinámicas del backend.
  */
-export function ShopScreen({ onOpenProduct }: Props) {
+export function ShopScreen({ onOpenProduct, searchQuery, onClearSearch }: Props) {
   const { add } = useCart();
+  const [fontsLoaded] = useFonts({
+    PlayfairDisplay_600SemiBold,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_700Bold,
+  });
 
-  const [meta, setMeta] = useState<CatalogCategories | null>(null);
+  // Colección y segmento vienen del encabezado superior (estado compartido)
+  const { bubble, setBubble, segment, setSegment, category, setCategory, meta } = useShopNav();
   const [products, setProducts] = useState<CatalogProduct[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [bubble, setBubble] = useState<string>('lo-nuevo');
-  const [segment, setSegment] = useState('todo');
-  const [category, setCategory] = useState<string>('');
   const [size, setSize] = useState('');
   const [priceRange, setPriceRange] = useState('');
   const [sort, setSort] = useState<NonNullable<CatalogFilters['sort']>>('recientes');
-  const [filtersOpen, setFiltersOpen] = useState(false);
   // Tallas del contexto actual (camisas → S-XL, zapatos → 38-44…)
   const [sizeOptions, setSizeOptions] = useState<CatalogSizeOption[]>([]);
 
-  // Cambiar el contexto de navegación limpia la talla elegida
-  const changeBubble = (id: string) => {
-    setBubble(id);
+  // Cambiar colección o segmento limpia la talla elegida
+  useEffect(() => {
     setSize('');
-  };
-  const changeSegment = (id: string) => {
-    setSegment(id);
-    setSize('');
-  };
-  const changeCategory = (slug: string) => {
+  }, [bubble, segment]);
+  const changeBubble = (id: string) => setBubble(id);
+  const changeSegment = (id: string) => setSegment(id);
+  // Las categorías se eligen desde el menú superior (estado compartido)
+  const selectCategory = (slug: string) => {
     setCategory(slug);
     setSize('');
   };
 
-  // Al elegir categoría el cuadro se colapsa, pero la selección queda guardada
-  const [categoriesOpen, setCategoriesOpen] = useState(true);
-  const selectCategory = (slug: string) => {
-    changeCategory(slug);
-    setCategoriesOpen(false);
-  };
-
   const [addedName, setAddedName] = useState<string | null>(null);
   const pillOpacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    fetchCategories()
-      .then(setMeta)
-      .catch(() => setError('No pudimos cargar las categorías'));
-  }, []);
 
   const bubbleFilters: Record<string, CatalogFilters> = {
     'lo-nuevo': { onlyNew: true },
@@ -188,36 +160,41 @@ export function ShopScreen({ onOpenProduct }: Props) {
   const addToCart = (p: CatalogProduct) => {
     const card = toCardProduct(p);
     // Talla por defecto: la primera con stock
-    const withStock = p.sizes.find((s) => s.available > 0)?.size ?? card.sizes[0];
-    add({ productId: card.id, name: card.name, price: card.price, size: withStock });
+    const withStock = p.sizes.find((s) => s.available > 0);
+    if (!withStock) {
+      Alert.alert('Agotado', `${card.name} no tiene tallas disponibles.`);
+      return;
+    }
+    add({ productId: card.id, name: card.name, price: withStock.price, size: withStock.size });
     setAddedName(card.name);
   };
 
-  const bubbles: Bubble[] = [
-    { id: 'lo-nuevo', label: 'Lo Nuevo', icon: 'sparkles-outline', filters: { onlyNew: true } },
-    { id: 'ofertas', label: 'Ofertas', icon: 'pricetag-outline', accent: true, filters: { onlySale: true } },
-    { id: 'mas-vendidos', label: '+ Vendidos', icon: 'trending-up-outline', filters: { onlyBest: true } },
-    ...(meta?.colecciones ?? []).map((c) => ({
-      id: c.slug,
-      label: c.name.split(' ')[0],
-      icon: COLLECTION_ICON[c.slug] ?? 'layers-outline',
-      filters: { tag: c.slug },
-    })),
-  ];
+  const bubbles = buildBubbles(meta);
 
-  const activeFilters = [size, priceRange].filter(Boolean).length;
+
+  const filteredProducts = React.useMemo(() => {
+    if (!products) return null;
+    if (!searchQuery || !searchQuery.trim()) return products;
+    const clean = searchQuery.trim().toLowerCase();
+    return products.filter((p) => {
+      const matchName = p.name.toLowerCase().includes(clean);
+      const matchCat = (p.categoryName || p.category || '').toLowerCase().includes(clean);
+      const matchRef = p.ref ? p.ref.toLowerCase().includes(clean) : false;
+      const matchTags = p.tags ? p.tags.some((t) => t.toLowerCase().includes(clean)) : false;
+      return matchName || matchCat || matchRef || matchTags;
+    });
+  }, [products, searchQuery]);
+
+  if (!fontsLoaded) {
+    return <View style={styles.root} />;
+  }
 
   return (
     <View style={styles.root}>
       <AuthBackdrop intensity={70} />
 
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        {/* Barra superior */}
-        <View style={styles.topBar}>
-          <Text style={styles.title}>Shopping</Text>
-          <Text style={styles.subtitle}>Encuentra tu prenda en 2 o 3 toques</Text>
-        </View>
-
+      {/* El encabezado con los módulos (Tienda, Vista, Carrito, Perfil) vive en MainTabs */}
+      <SafeAreaView style={styles.safe} edges={[]}>
         {addedName ? (
           <Animated.View pointerEvents="none" style={[styles.pill, { opacity: pillOpacity }]}>
             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
@@ -226,66 +203,6 @@ export function ShopScreen({ onOpenProduct }: Props) {
             </Text>
           </Animated.View>
         ) : null}
-
-        {/* Bloque fijo de controles: nunca se va con el scroll de los módulos */}
-        <View style={styles.headerBlock}>
-        {/* Nivel A: burbujas de acceso rápido */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bubbles}>
-            {bubbles.map((b) => {
-              const active = bubble === b.id;
-              return (
-                <Pressable
-                  key={b.id}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                  onPress={() => changeBubble(b.id)}
-                  style={styles.bubbleWrap}
-                >
-                  <View
-                    style={[
-                      styles.bubble,
-                      active && b.accent && styles.bubbleAccentActive,
-                      active && !b.accent && styles.bubbleActive,
-                      !active && b.accent && styles.bubbleAccent,
-                    ]}
-                  >
-                    <Ionicons
-                      name={b.icon}
-                      size={18}
-                      color={active ? (b.accent ? '#FFFFFF' : colors.accent) : b.accent ? '#F59E0B' : colors.textSecondary}
-                    />
-                  </View>
-                  <Text style={[styles.bubbleLabel, active && styles.bubbleLabelActive, b.accent && styles.bubbleLabelAccent]}>
-                    {b.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
-          {/* Nivel B: pestañas de segmento (dinámicas) */}
-          <View style={styles.segmentRow}>
-            {[{ id: 'todo', label: 'Todo' }, ...(meta?.segments ?? []).map((s) => ({ id: s, label: SEGMENT_LABEL[s] ?? s }))].map(
-              (tab) => {
-                const active = segment === tab.id;
-                return (
-                  <Pressable
-                    key={tab.id}
-                    accessibilityRole="tab"
-                    accessibilityState={{ selected: active }}
-                    onPress={() => changeSegment(tab.id)}
-                    style={[styles.segment, active && styles.segmentActive]}
-                  >
-                    <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
-                      {tab.label}
-                    </Text>
-                  </Pressable>
-                );
-              },
-            )}
-          </View>
-
-        </View>
 
         {/* Zona de módulos: el grid corre por DETRÁS del cuadro flotante de categorías */}
         <View style={styles.gridZone}>
@@ -297,15 +214,48 @@ export function ShopScreen({ onOpenProduct }: Props) {
             <Text style={styles.error}>{error}</Text>
           ) : (
             <FlatList
-              data={products ?? []}
+              data={filteredProducts ?? []}
               keyExtractor={(p) => p.id}
               numColumns={2}
               style={styles.gridFlex}
               columnWrapperStyle={styles.gridRow}
               contentContainerStyle={styles.grid}
               showsVerticalScrollIndicator={false}
+              ListHeaderComponent={
+                <View>
+                  <ShopHero
+                    onShop={() => {
+                      changeBubble('lo-nuevo');
+                      changeSegment('todo');
+                      selectCategory('');
+                    }}
+                  />
+                  <BenefitsMarquee />
+                  <View style={styles.sectionHead}>
+                    <Text style={styles.sectionTitle}>
+                      {searchQuery && searchQuery.trim()
+                        ? 'RESULTADOS DE BÚSQUEDA'
+                        : (bubbles.find((b) => b.id === bubble)?.label ?? 'Colección').toUpperCase()}
+                    </Text>
+                    <Text style={styles.sectionCount}>
+                      {filteredProducts?.length ?? 0} {filteredProducts?.length === 1 ? 'prenda' : 'prendas'}
+                    </Text>
+                  </View>
+                </View>
+              }
               ListEmptyComponent={
-                <Text style={styles.empty}>No hay prendas con estos filtros. Prueba otra combinación.</Text>
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.empty}>
+                    {searchQuery
+                      ? `No encontramos prendas para "${searchQuery}".`
+                      : 'No hay prendas con estos filtros. Prueba otra combinación.'}
+                  </Text>
+                  {searchQuery && onClearSearch ? (
+                    <Pressable onPress={onClearSearch} style={styles.clearSearchBtn}>
+                      <Text style={styles.clearSearchBtnText}>Limpiar búsqueda</Text>
+                    </Pressable>
+                  ) : null}
+                </View>
               }
               renderItem={({ item }) => {
                 const card = toCardProduct(item);
@@ -320,148 +270,143 @@ export function ShopScreen({ onOpenProduct }: Props) {
             />
           )}
 
-          {/* Cuadro de categorías flotante: las tarjetas pasan por detrás */}
+          {/* Franja bajo el menú: tallas de la categoría elegida, luego precio y orden */}
           <View style={styles.categoryBar} pointerEvents="box-none">
-            <BlurView intensity={32} tint="dark" style={StyleSheet.absoluteFill} />
             <View style={styles.categoryTint} />
-
-            {categoriesOpen ? (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.chipsScroll}
-                contentContainerStyle={styles.chips}
-                nestedScrollEnabled
-              >
-                <Chip label="Todo" active={!category} onPress={() => selectCategory('')} />
-                {(meta?.prendas ?? []).map((c) => (
-                  <Chip
-                    key={c.slug}
-                    label={c.name}
-                    active={category === c.slug}
-                    onPress={() => selectCategory(c.slug)}
-                  />
-                ))}
-              </ScrollView>
-            ) : (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Cambiar categoría"
-                onPress={() => setCategoriesOpen(true)}
-                style={styles.selectedPill}
-              >
-                <Ionicons name="grid-outline" size={15} color={colors.accent} />
-                <Text style={styles.selectedPillText} numberOfLines={1}>
-                  {category
-                    ? (meta?.prendas.find((c) => c.slug === category)?.name ?? 'Categoría')
-                    : 'Todas las categorías'}
-                </Text>
-                <Ionicons name="chevron-down" size={14} color={colors.textSecondary} />
-              </Pressable>
-            )}
-
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Filtrar"
-              onPress={() => setFiltersOpen((v) => !v)}
-              style={[styles.filterBtn, activeFilters > 0 && styles.filterBtnActive]}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.stripScroll}
+              contentContainerStyle={styles.stripRow}
+              nestedScrollEnabled
             >
-              <Ionicons name="options-outline" size={16} color={activeFilters > 0 ? colors.accent : colors.textSecondary} />
-              {activeFilters > 0 ? (
-                <Text style={styles.filterBtnTextActive}>{activeFilters}</Text>
-              ) : null}
-            </Pressable>
-          </View>
-
-          {/* Panel de filtros superpuesto al grid: compacto, gris claro */}
-          {filtersOpen ? (
-            <View style={styles.filtersFloat} pointerEvents="box-none">
-              <GlassCard compact light>
-                <Text style={styles.filterTitle}>
-                  {category
-                    ? `Tallas de ${meta?.prendas.find((c) => c.slug === category)?.name ?? 'la categoría'}`
-                    : 'Tallas del catálogo visible'}
-                </Text>
-                <View style={styles.filterRow}>
-                  {sizeOptions.length === 0 ? (
-                    <Text style={styles.panelHint}>Sin tallas en este contexto</Text>
-                  ) : (
-                    sizeOptions.map((option) => {
-                      const active = size === option.size;
-                      return (
-                        <Pressable
-                          key={option.size}
-                          accessibilityRole="button"
-                          accessibilityState={{ selected: active }}
-                          onPress={() => setSize(active ? '' : option.size)}
-                          style={[styles.panelChip, active && styles.panelChipActive]}
+              {category && sizeOptions.length > 0
+                ? sizeOptions.map((option) => {
+                    const active = size === option.size;
+                    return (
+                      <Pressable
+                        key={option.size}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Talla ${option.size}${option.inStock ? '' : ', agotada'}`}
+                        accessibilityState={{ selected: active }}
+                        onPress={() => setSize(active ? '' : option.size)}
+                        style={[styles.panelChip, active && styles.panelChipActive]}
+                      >
+                        <Text
+                          style={[
+                            styles.panelChipText,
+                            active && styles.panelChipTextActive,
+                            !option.inStock && styles.sizeChipSoldOut,
+                          ]}
                         >
-                          <Text
-                            style={[
-                              styles.panelChipText,
-                              active && styles.panelChipTextActive,
-                              !option.inStock && styles.sizeChipSoldOut,
-                            ]}
-                          >
-                            {option.size}
-                          </Text>
-                        </Pressable>
-                      );
-                    })
-                  )}
-                </View>
-                <Text style={styles.filterTitle}>Precio</Text>
-                <View style={styles.filterRow}>
-                  {PRICE_RANGES.map((r) => (
-                    <Pressable
-                      key={r.id}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: priceRange === r.id }}
-                      onPress={() => setPriceRange(priceRange === r.id ? '' : r.id)}
-                      style={[styles.panelChip, priceRange === r.id && styles.panelChipActive]}
-                    >
-                      <Text style={[styles.panelChipText, priceRange === r.id && styles.panelChipTextActive]}>
-                        {r.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <Text style={styles.filterTitle}>Ordenar por</Text>
-                <View style={styles.filterRow}>
-                  {SORTS.map((s) => (
-                    <Pressable
-                      key={s.id}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: sort === s.id }}
-                      onPress={() => setSort(s.id)}
-                      style={[styles.panelChip, sort === s.id && styles.panelChipActive]}
-                    >
-                      <Text style={[styles.panelChipText, sort === s.id && styles.panelChipTextActive]}>
-                        {s.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <Text style={styles.panelHint}>Las tallas tachadas no tienen stock disponible.</Text>
-              </GlassCard>
-            </View>
-          ) : null}
+                          {option.size}
+                        </Text>
+                      </Pressable>
+                    );
+                  })
+                : null}
+              {category && sizeOptions.length > 0 ? <View style={styles.stripDivider} /> : null}
+              {PRICE_RANGES.map((r) => (
+                <Pressable
+                  key={r.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: priceRange === r.id }}
+                  onPress={() => setPriceRange(priceRange === r.id ? '' : r.id)}
+                  style={[styles.panelChip, priceRange === r.id && styles.panelChipActive]}
+                >
+                  <Text style={[styles.panelChipText, priceRange === r.id && styles.panelChipTextActive]}>
+                    {r.label}
+                  </Text>
+                </Pressable>
+              ))}
+              <View style={styles.stripDivider} />
+              {SORTS.map((s) => (
+                <Pressable
+                  key={s.id}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: sort === s.id }}
+                  onPress={() => setSort(s.id)}
+                  style={[styles.panelChip, sort === s.id && styles.panelChipActive]}
+                >
+                  <Text style={[styles.panelChipText, sort === s.id && styles.panelChipTextActive]}>{s.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
         </View>
       </SafeAreaView>
     </View>
   );
 }
 
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+/** Portada: foto a sentido completo con degradado, título editorial y botón principal. */
+function ShopHero({ onShop }: { onShop: () => void }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={[styles.chip, active && styles.chipActive]}
-    >
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
-    </Pressable>
+    <View style={styles.hero}>
+      <Image source={INTRO_IMAGE} style={StyleSheet.absoluteFill} contentFit="cover" priority="high" />
+      <LinearGradient
+        colors={['rgba(5, 10, 22, 0)', 'rgba(5, 10, 22, 0.55)', colors.bg]}
+        locations={[0, 0.55, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.heroCopy}>
+        <Text style={styles.heroTitle}>VISTE DISTINTO</Text>
+        <Text style={styles.heroText}>Básicos premium y piezas de temporada, pensados para Colombia.</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Ver la colección"
+          onPress={onShop}
+          style={({ pressed }) => [styles.heroButton, pressed && styles.pressed]}
+        >
+          <Text style={styles.heroButtonText}>Ver la colección</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+/** Cinta de beneficios que se desplaza sin fin (se detiene si el usuario reduce el movimiento). */
+function BenefitsMarquee() {
+  const shift = useRef(new Animated.Value(0)).current;
+  const [segmentWidth, setSegmentWidth] = useState(0);
+
+  useEffect(() => {
+    if (!segmentWidth) return undefined;
+    let loop: Animated.CompositeAnimation | null = null;
+    let cancelled = false;
+    AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
+      if (cancelled || reduce) return;
+      loop = Animated.loop(
+        Animated.timing(shift, {
+          toValue: -segmentWidth,
+          duration: segmentWidth * 22,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      );
+      loop.start();
+    });
+    return () => {
+      cancelled = true;
+      loop?.stop();
+      shift.setValue(0);
+    };
+  }, [segmentWidth, shift]);
+
+  return (
+    <View style={styles.marquee}>
+      <Animated.View style={[styles.marqueeTrack, { transform: [{ translateX: shift }] }]}>
+        {[0, 1].map((i) => (
+          <Text
+            key={i}
+            onLayout={i === 0 ? (e) => setSegmentWidth(e.nativeEvent.layout.width) : undefined}
+            style={styles.marqueeText}
+          >
+            {BENEFITS}
+          </Text>
+        ))}
+      </Animated.View>
+    </View>
   );
 }
 
@@ -469,9 +414,64 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   safe: { flex: 1 },
   headerBlock: { flexShrink: 1, flexGrow: 0 },
-  topBar: { paddingHorizontal: spacing.xl, paddingTop: spacing.sm + 4, paddingBottom: 2 },
-  title: { color: colors.textPrimary, fontSize: 21, fontWeight: '700' },
-  subtitle: { color: colors.textMuted, fontSize: 11.5, marginTop: 1 },
+  pressed: { transform: [{ scale: 0.97 }] },
+  hero: { height: 380, overflow: 'hidden', backgroundColor: colors.bg, marginHorizontal: -spacing.lg },
+  heroCopy: {
+    position: 'absolute',
+    left: spacing.lg,
+    right: spacing.lg,
+    bottom: spacing.xl,
+    gap: spacing.sm,
+  },
+  heroTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.display,
+    fontSize: 34,
+    letterSpacing: 2,
+  },
+  heroText: { color: colors.textSecondary, fontFamily: fonts.body, fontSize: 14, lineHeight: 20 },
+  heroButton: {
+    height: 48,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accentButton,
+    marginTop: spacing.sm,
+  },
+  heroButtonText: { color: colors.textOnAccent, fontFamily: fonts.bodyBold, fontSize: 15 },
+  marquee: {
+    marginTop: spacing.lg,
+    marginHorizontal: -spacing.lg,
+    paddingVertical: spacing.sm + 2,
+    overflow: 'hidden',
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  marqueeTrack: { flexDirection: 'row' },
+  marqueeText: {
+    flexShrink: 0,
+    color: colors.accent,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    color: colors.textPrimary,
+    fontFamily: fonts.display,
+    fontSize: 18,
+    letterSpacing: 2,
+  },
+  sectionCount: { color: colors.textMuted, fontFamily: fonts.body, fontSize: 12 },
   pill: {
     position: 'absolute',
     bottom: tabBarSpacing + 24,
@@ -545,6 +545,9 @@ const styles = StyleSheet.create({
   segmentTextActive: { color: colors.textPrimary },
   toolsRow: { flexDirection: 'row', alignItems: 'center', paddingRight: spacing.xl, gap: spacing.sm },
   gridZone: { flex: 1 },
+  stripScroll: { flex: 1 },
+  stripRow: { alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg },
+  stripDivider: { width: 1, height: 18, backgroundColor: colors.glassBorder, marginHorizontal: 2 },
   categoryBar: {
     position: 'absolute',
     top: 0,
@@ -561,7 +564,7 @@ const styles = StyleSheet.create({
   },
   categoryTint: {
     ...fill,
-    backgroundColor: 'rgba(11, 23, 51, 0.55)',
+    backgroundColor: colors.bgElevated,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.10)',
   },
@@ -585,6 +588,52 @@ const styles = StyleSheet.create({
     right: spacing.xl,
     zIndex: 20,
   },
+  menuBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
+  },
+  menuFloat: {
+    position: 'absolute',
+    top: 52,
+    left: spacing.lg,
+    right: spacing.lg,
+    zIndex: 25,
+  },
+  menuCard: {
+    maxHeight: 420,
+    borderRadius: radius.sm,
+    padding: spacing.md,
+    backgroundColor: 'rgba(14, 22, 40, 0.97)',
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+  },
+  menuTitle: {
+    color: colors.textMuted,
+    fontFamily: fonts.bodyMedium,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+    marginLeft: spacing.sm,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minHeight: 44,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
+  },
+  menuRowActive: { backgroundColor: colors.accentSoft },
+  menuRowText: { flex: 1, color: colors.textSecondary, fontFamily: fonts.body, fontSize: 14 },
+  menuRowTextActive: { color: colors.textPrimary, fontFamily: fonts.bodyBold },
   chipsScroll: { flex: 1 },
   chips: { gap: spacing.sm, paddingRight: spacing.sm, paddingVertical: 6 },
   chip: {
@@ -629,7 +678,7 @@ const styles = StyleSheet.create({
   },
   panelChipActive: {
     borderColor: 'rgba(203, 211, 224, 0.75)',
-    backgroundColor: colors.accent,
+    backgroundColor: colors.accentButton,
   },
   panelChipText: { color: 'rgba(228, 234, 244, 0.92)', fontSize: 11.5, fontWeight: '500' },
   panelChipTextActive: { color: '#FFFFFF', fontWeight: '700' },
@@ -652,8 +701,19 @@ const styles = StyleSheet.create({
   soldOutHint: { color: colors.textMuted, fontSize: 11, textAlign: 'center' },
   loader: { marginVertical: 40 },
   error: { color: colors.danger, textAlign: 'center', marginVertical: 30, paddingHorizontal: spacing.xl },
-  empty: { color: colors.textMuted, textAlign: 'center', marginVertical: 30, paddingHorizontal: spacing.xl },
+  emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 24 },
+  empty: { color: colors.textMuted, textAlign: 'center', marginVertical: 12, paddingHorizontal: spacing.xl },
+  clearSearchBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: radius.sm,
+    backgroundColor: colors.glassFillStrong,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    marginTop: 8,
+  },
+  clearSearchBtnText: { color: colors.textPrimary, fontSize: 13, fontWeight: '600' },
   gridFlex: { flex: 1 },
-  grid: { paddingTop: 54, paddingBottom: tabBarSpacing + spacing.xxl },
-  gridRow: { gap: 10, marginBottom: spacing.lg, paddingHorizontal: 0 },
+  grid: { paddingTop: 54, paddingBottom: tabBarSpacing + spacing.xxl, paddingHorizontal: spacing.lg },
+  gridRow: { gap: 12, marginBottom: spacing.lg, paddingHorizontal: 0 },
 });

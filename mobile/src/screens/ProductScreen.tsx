@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,10 +6,12 @@ import { AuthBackdrop } from '../components/AuthBackdrop';
 import { GlassCard } from '../components/GlassCard';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ProductImage } from '../components/ProductImage';
-import { TryOnCanvas } from '../components/TryOnCanvas';
+import { OutfitTryOn } from '../components/OutfitTryOn';
 import { colors, radius, spacing } from '../shop/tokens';
-import { categoryLabel, formatCOP, Product, productRef, products } from '../data/products';
+import { useStockIndex } from '../shop/stock';
+import { categoryLabel, formatCOP, Product, products } from '../data/products';
 import { useCart } from '../context/CartContext';
+import { VISTA_ENABLED } from '../config';
 
 type Props = {
   product: Product;
@@ -18,6 +20,10 @@ type Props = {
 };
 
 const FREE_SHIPPING_FROM = 300000;
+
+// Colores de lectura: opacos y con buen contraste sobre el fondo oscuro difuminado.
+const TEXT_MAIN = '#FFFFFF';
+const TEXT_SOFT = 'rgba(236, 240, 248, 0.92)';
 
 export function ProductScreen({ product, onBack, onOpenCart }: Props) {
   // Un solo producto "actual": la ficha, el probador, la talla y el carrito usan el mismo.
@@ -28,6 +34,30 @@ export function ProductScreen({ product, onBack, onOpenCart }: Props) {
 
   const related = products.filter((p) => p.category === current.category && p.id !== current.id);
 
+  // Stock, precio y referencia reales del servidor (la referencia la calcula solo el servidor)
+  const index = useStockIndex([current.id]);
+  const info = index?.[current.id];
+
+  // Filas de talla: con stock real si ya llegó del servidor; si no, las locales
+  const sizeRows: Array<{ size: string; available: number | null }> = info
+    ? info.sizes.map((v) => ({ size: v.size, available: v.available }))
+    : current.sizes.map((s) => ({ size: s, available: null }));
+  const selectedRow = sizeRows.find((r) => r.size === size);
+  const selectedVariant = info?.sizes.find((v) => v.size === size);
+  const displayPrice = info?.price ?? current.price;
+  const soldOut = info ? (selectedRow?.available ?? 0) === 0 : false;
+  const availableSizes = sizeRows.filter((r) => r.available !== 0).map((r) => r.size);
+
+  // Si la talla elegida está agotada o no existe, pasa a la primera con stock
+  useEffect(() => {
+    if (!info) return;
+    const chosen = info.sizes.find((v) => v.size === size);
+    if (!chosen || chosen.available === 0) {
+      setSize(info.sizes.find((v) => v.available > 0)?.size ?? size);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [info]);
+
   function selectProduct(next: Product) {
     setCurrent(next);
     setSize(next.sizes[1] ?? next.sizes[0]);
@@ -35,7 +65,13 @@ export function ProductScreen({ product, onBack, onOpenCart }: Props) {
   }
 
   function addToCart() {
-    add({ productId: current.id, name: current.name, price: current.price, size });
+    if (soldOut) return;
+    add({
+      productId: current.id,
+      name: current.name,
+      price: selectedVariant?.price ?? displayPrice,
+      size,
+    });
   }
 
   return (
@@ -56,33 +92,25 @@ export function ProductScreen({ product, onBack, onOpenCart }: Props) {
           {/* Muestra directamente la fotografía del producto en alta definición */}
           {!showTryOn ? (
             <View style={styles.imageShowcase}>
-              <ProductImage
-                product={current}
-                style={styles.showcaseImage}
-                contentFit="contain"
-                iconSize={54}
-              />
+              <ProductImage product={current} style={styles.showcaseImage} contentFit="contain" iconSize={54} />
             </View>
           ) : (
-            <TryOnCanvas product={current} />
+            <OutfitTryOn key={current.id} initial={current} />
           )}
 
-          {/* Botón opcional para activar o volver del probador virtual */}
+          {VISTA_ENABLED ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={showTryOn ? 'Ver foto del producto' : 'Probar prenda'}
             onPress={() => setShowTryOn((prev) => !prev)}
             style={styles.tryOnToggle}
           >
-            <Ionicons
-              name={showTryOn ? 'image-outline' : 'sparkles-outline'}
-              size={16}
-              color={colors.accent}
-            />
+            <Ionicons name={showTryOn ? 'image-outline' : 'sparkles-outline'} size={16} color={colors.accent} />
             <Text style={styles.tryOnToggleText}>
               {showTryOn ? 'Volver a la vista del producto' : 'Probar prenda sobre mi foto (Módulo Vista)'}
             </Text>
           </Pressable>
+          ) : null}
 
           {/* Ficha del producto: lo que el cliente necesita antes de comprar */}
           <GlassCard>
@@ -91,14 +119,17 @@ export function ProductScreen({ product, onBack, onOpenCart }: Props) {
                 <Text style={styles.name}>{current.name}</Text>
                 <Text style={styles.category}>{categoryLabel(current.category)}</Text>
               </View>
-              <Text style={styles.price}>{formatCOP(current.price)}</Text>
+              <Text style={styles.price}>{formatCOP(displayPrice)}</Text>
             </View>
 
             <View style={styles.divider} />
 
-            <DetailRow label="Referencia" value={productRef(current)} />
+            <DetailRow label="Referencia" value={info?.ref ?? 'Sin referencia'} />
             <DetailRow label="Categoría" value={categoryLabel(current.category)} />
-            <DetailRow label="Tallas disponibles" value={current.sizes.join(' · ')} />
+            <DetailRow
+              label="Tallas disponibles"
+              value={availableSizes.length > 0 ? availableSizes.join(' · ') : 'Agotado'}
+            />
             <DetailRow label="Talla seleccionada" value={size} />
             <DetailRow label="Envío" value={`Gratis en compras desde ${formatCOP(FREE_SHIPPING_FROM)}`} />
           </GlassCard>
@@ -106,17 +137,21 @@ export function ProductScreen({ product, onBack, onOpenCart }: Props) {
           <GlassCard>
             <Text style={styles.sectionLabel}>Talla</Text>
             <View style={styles.sizes}>
-              {current.sizes.map((s) => {
-                const selected = s === size;
+              {sizeRows.map((row) => {
+                const selected = row.size === size;
+                const out = row.available === 0;
                 return (
                   <Pressable
-                    key={s}
+                    key={row.size}
                     accessibilityRole="button"
-                    accessibilityState={{ selected }}
-                    onPress={() => setSize(s)}
-                    style={[styles.size, selected && styles.sizeActive]}
+                    accessibilityState={{ selected, disabled: out }}
+                    disabled={out}
+                    onPress={() => setSize(row.size)}
+                    style={[styles.size, selected && styles.sizeActive, out && styles.sizeOut]}
                   >
-                    <Text style={[styles.sizeText, selected && styles.sizeTextActive]}>{s}</Text>
+                    <Text style={[styles.sizeText, selected && styles.sizeTextActive, out && styles.sizeTextOut]}>
+                      {row.size}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -147,14 +182,20 @@ export function ProductScreen({ product, onBack, onOpenCart }: Props) {
         </ScrollView>
 
         <View style={styles.footer}>
-          <PrimaryButton title="Agregar al carrito" onPress={addToCart} />
+          <PrimaryButton
+            title={soldOut ? 'Agotado en esta talla' : 'Agregar al carrito'}
+            onPress={addToCart}
+            disabled={soldOut}
+          />
           <Pressable
             accessibilityRole="button"
+            accessibilityState={{ disabled: soldOut }}
             onPress={() => {
+              if (soldOut) return;
               addToCart();
               onOpenCart();
             }}
-            style={styles.buyNow}
+            style={[styles.buyNow, soldOut && styles.disabled]}
           >
             <Text style={styles.buyNowText}>Comprar ahora</Text>
           </Pressable>
@@ -184,8 +225,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   back: { minHeight: 44, justifyContent: 'center' },
-  backText: { color: colors.textPrimary, fontSize: 15, fontWeight: '500' },
-  topTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '600', flex: 1, textAlign: 'center' },
+  backText: { color: TEXT_MAIN, fontSize: 16, fontWeight: '600' },
+  topTitle: { color: TEXT_MAIN, fontSize: 16, fontWeight: '700', flex: 1, textAlign: 'center' },
   spacer: { width: 60 },
   content: { paddingHorizontal: spacing.xl, paddingBottom: 24, gap: spacing.lg },
   imageShowcase: {
@@ -202,47 +243,54 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 4,
   },
-  showcaseImage: {
-    width: '100%',
-    height: '100%',
-  },
+  showcaseImage: { width: '100%', height: '100%' },
   tryOnToggle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    minHeight: 48,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: radius.md,
-    backgroundColor: colors.glassFill,
+    backgroundColor: colors.glassFillStrong,
     borderWidth: 1,
     borderColor: colors.glassBorder,
   },
-  tryOnToggleText: {
-    color: colors.textPrimary,
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  tryOnToggleText: { color: TEXT_MAIN, fontSize: 15, fontWeight: '600' },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.md },
   titleBlock: { flex: 1 },
-  name: { color: colors.textPrimary, fontSize: 18, fontWeight: '700' },
-  category: { color: colors.textMuted, fontSize: 12, marginTop: 3, textTransform: 'uppercase', letterSpacing: 1 },
-  price: { color: colors.textPrimary, fontSize: 18, fontWeight: '700' },
+  name: { color: TEXT_MAIN, fontSize: 20, fontWeight: '700' },
+  category: {
+    color: TEXT_SOFT,
+    fontSize: 13,
+    fontWeight: '600',
+    marginTop: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  price: { color: TEXT_MAIN, fontSize: 20, fontWeight: '700' },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: colors.glassBorder, marginVertical: spacing.md },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 5,
+    paddingVertical: 6,
     gap: spacing.md,
   },
-  detailLabel: { color: colors.textMuted, fontSize: 13 },
-  detailValue: { color: colors.textPrimary, fontSize: 13, fontWeight: '500', flexShrink: 1, textAlign: 'right' },
-  sectionLabel: { color: colors.textSecondary, fontSize: 13, fontWeight: '500', marginBottom: spacing.sm },
-  sizes: { flexDirection: 'row', gap: spacing.sm },
+  detailLabel: { color: TEXT_SOFT, fontSize: 14, fontWeight: '500' },
+  detailValue: { color: TEXT_MAIN, fontSize: 14, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
+  sectionLabel: { color: TEXT_MAIN, fontSize: 15, fontWeight: '700', marginBottom: spacing.md, textAlign: 'center' },
+  sizes: {
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
   size: {
-    width: 52,
-    height: 44,
+    width: 42,
+    height: 38,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.glassBorder,
@@ -250,22 +298,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sizeActive: { borderWidth: 2, borderColor: colors.accent, backgroundColor: colors.accentSoft },
-  sizeText: { color: colors.textSecondary, fontSize: 14 },
-  sizeTextActive: { color: colors.textPrimary, fontWeight: '600' },
+  sizeOut: { opacity: 0.4 },
+  sizeText: { color: TEXT_MAIN, fontSize: 14, fontWeight: '600', textAlign: 'center' },
+  sizeTextActive: { color: TEXT_MAIN, fontWeight: '700' },
+  sizeTextOut: { textDecorationLine: 'line-through' },
   relatedBlock: { gap: 0 },
   relatedRow: { gap: spacing.sm, paddingRight: spacing.xl },
   relatedChip: {
     width: 150,
-    minHeight: 72,
+    minHeight: 80,
     borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.glassBorder,
-    backgroundColor: colors.glassFill,
+    backgroundColor: colors.glassFillStrong,
     padding: spacing.md,
     justifyContent: 'space-between',
   },
-  relatedName: { color: colors.textPrimary, fontSize: 12.5, fontWeight: '600' },
-  relatedPrice: { color: colors.textMuted, fontSize: 12 },
+  relatedName: { color: TEXT_MAIN, fontSize: 14, fontWeight: '600' },
+  relatedPrice: { color: TEXT_SOFT, fontSize: 14, fontWeight: '600' },
   footer: { paddingHorizontal: spacing.xl, paddingBottom: spacing.lg, gap: spacing.sm },
   buyNow: {
     height: 52,
@@ -276,5 +326,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buyNowText: { color: colors.textPrimary, fontSize: 15, fontWeight: '600' },
+  disabled: { opacity: 0.4 },
+  buyNowText: { color: TEXT_MAIN, fontSize: 16, fontWeight: '700' },
 });

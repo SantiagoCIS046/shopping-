@@ -3,14 +3,15 @@
  * y textos grisáceos. El estilo glass se mantiene en los componentes.
  */
 export const colors = {
-  bg: '#050A16',
-  bgSoft: 'rgba(15, 23, 42, 0.55)',
-  accent: '#6D9DF3', // azul claro: textos destacados, bordes, iconos
-  accentStrong: '#3E7BFA', // azul del botón principal
-  text: '#E8ECF4', // blanco grisáceo
-  textDim: 'rgba(214, 222, 234, 0.75)',
-  textFaint: 'rgba(214, 222, 234, 0.45)',
-  border: 'rgba(255, 255, 255, 0.14)',
+  bg: '#050A16', // azul marino: fondo principal
+  bgSoft: 'rgba(14, 22, 40, 0.75)', // superficies (#0E1628)
+  accent: '#9ECEFF', // azul claro: precios, estrellas, detalles
+  accentStrong: '#2F6BEB', // botón principal
+  info: '#6D9DF3', // información
+  text: '#E8ECF4', // texto principal
+  textDim: '#9296A0', // texto secundario (~62 %)
+  textFaint: 'rgba(146, 150, 160, 0.75)',
+  border: 'rgba(232, 236, 244, 0.12)',
   inputBg: 'rgba(255, 255, 255, 0.06)',
   danger: '#E2766B',
 } as const;

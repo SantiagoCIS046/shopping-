@@ -6,6 +6,8 @@ export type OrderItemInput = {
   quantity: number;
 };
 
+export type DocType = 'CC' | 'CE' | 'NIT' | 'PAS';
+
 export type ShippingAddress = {
   city: string;
   address: string;
@@ -48,6 +50,8 @@ export function createOrder(input: {
   customerEmail: string;
   phone: string;
   shippingAddress: ShippingAddress;
+  customerDocType: DocType;
+  customerDocNumber: string;
 }) {
   return api<CreatedOrder>('/orders', {
     method: 'POST',

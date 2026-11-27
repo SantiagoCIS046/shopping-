@@ -8,6 +8,7 @@ import {
 } from '../api/client';
 
 export type AuthUser = { id: string; name: string; email: string; isAdmin?: boolean };
+// Nota: los datos de pago y envío se leen con getProfile() (api/profile.ts).
 
 type AuthResponse = { token: string; refreshToken: string; user: AuthUser };
 

@@ -8,6 +8,7 @@ export type CatalogVariant = { size: string; available: number; price: number };
 
 export type CatalogProduct = {
   id: string; // slug
+  ref: string | null; // referencia pública opaca (la que ve el cliente)
   name: string;
   category: string; // slug de la categoría de prenda
   categoryName: string;
@@ -73,9 +74,12 @@ router.get('/products', async (req: Request, res: Response) => {
   const onlySale = q.sale === '1';
   const onlyBest = q.best === '1';
   const sort = q.sort ?? 'recientes';
+  // slugs=a,b → solo esos productos (la app pide el stock real de su carrito)
+  const slugs = q.slugs ? q.slugs.split(',').filter(Boolean) : undefined;
 
   const where = {
     categoryId: { not: null },
+    ...(slugs ? { slug: { in: slugs } } : {}),
     ...(segment ? { audience: segment } : {}),
     ...(category ? { categoryRef: { slug: category } } : {}),
     ...(tag ? { tags: { has: tag } } : {}),
@@ -97,6 +101,7 @@ router.get('/products', async (req: Request, res: Response) => {
     const effective = p.discountPrice ?? price;
     return {
       id: p.slug,
+      ref: p.publicRef,
       name: p.name,
       category: p.categoryRef?.slug ?? p.category,
       categoryName: p.categoryRef?.name ?? p.category,
@@ -108,7 +113,11 @@ router.get('/products', async (req: Request, res: Response) => {
       isNew: p.createdAt >= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
       sold: sold.get(p.slug) ?? 0,
       sizes: p.variants
-        .map((v) => ({ size: v.size, available: Math.max(0, v.stock - v.reserved), price: v.price }))
+        .map((v) => ({
+          size: v.size,
+          available: Math.max(0, v.stock - v.reserved),
+          price: p.discountPrice ?? v.price, // precio efectivo (oferta si aplica)
+        }))
         .sort((a, b) => a.size.localeCompare(b.size, 'es', { numeric: true })),
     };
   });
